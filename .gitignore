@@ -51,8 +51,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-dist/
-build/
 *.tsbuildinfo
 
 # === Environment & Secrets ===
