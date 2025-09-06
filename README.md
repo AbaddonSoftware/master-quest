@@ -7,7 +7,7 @@
 
 **Master Quest combines the clarity of a kanban board with the creativity of [Twine/Twee](https://twinery.org/) interactive storytelling.**
 
-**The aim is to let users not only track tasks but also potentially “play through” their projected goals as branching narratives.**
+**The aim is to let users not only track tasks but also “play through” their projected goals as branching narratives.**
 
 ---
 
