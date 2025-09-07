@@ -60,6 +60,9 @@ pnpm-debug.log*
 secrets.json
 config.json
 
+# === Ignore Alembic migration scripts ===
+**/migrations/versions/*
+
 # === OS / Editor ===
 .DS_Store
 Thumbs.db

@@ -1,11 +1,23 @@
 from flask import Flask
 
-def create_app():
-    app = Flask(__name__)
+from .config import DevConfig, ProdConfig
+from .extensions import db, sessions
+from .routes import register_routes
 
-    @app.get("/api/ping")
+def create_app():
+    flask_app = Flask(__name__)
+    
+    cfg = DevConfig
+    flask_app.config.from_object(cfg)
+
+    db.init_app(flask_app)
+    sessions.init_app(flask_app)
+
+    import app.persistence.models  
+
+    @flask_app.get("/api/ping")
     def ping():
         return "pong"
         
 
-    return app
+    return flask_app
