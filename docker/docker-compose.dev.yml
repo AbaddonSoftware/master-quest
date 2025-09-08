@@ -24,13 +24,33 @@ services:
       - db
     environment:
       FLASK_APP: app:create_app
-      FLASK_DEBUG: 1
     volumes:
       - ../api:/app
     working_dir: /app
+    expose:
+      - "5000"
+    command: >
+      gunicorn "wsgi:app"
+      -b 0.0.0.0:5000
+      -w 1 --threads 4
+      --timeout 20 --keep-alive 5
+      --reload
+
+  nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
     ports:
-      - "5000:5000"
-    command: gunicorn -w 2 -b 0.0.0.0:5000 "wsgi:app"
+      - "8080:80"             # public entry point for dev
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      # BusyBox wget exists in nginx:alpine; curl does not
+      test: ["CMD-SHELL", "wget -qO- http://localhost/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
 
 volumes:
   db-data:

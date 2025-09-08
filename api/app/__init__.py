@@ -17,7 +17,7 @@ def create_app():
 
     @flask_app.get("/api/ping")
     def ping():
-        return "pong"
+        return "doh!"
         
 
     return flask_app
