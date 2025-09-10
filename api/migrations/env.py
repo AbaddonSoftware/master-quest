@@ -18,7 +18,6 @@ if config.config_file_name is not None:
 # Import Flask app + db for metadata
 from app import create_app
 from app.extensions import db
-
 import app.persistence.models
 
 
