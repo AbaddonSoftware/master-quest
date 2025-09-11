@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Mapping, Any, Optional
 from types import MappingProxyType
+from typing import Any, Mapping, Optional
+
 
 @dataclass(frozen=True)
 class Tokens:
@@ -11,6 +12,7 @@ class Tokens:
     expires_in: Optional[int] = None
     raw: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
+
 @dataclass(frozen=True)
 class UserProfile:
     provider: str
@@ -19,4 +21,3 @@ class UserProfile:
     name: Optional[str] = None
     picture: Optional[str] = None
     raw: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-

@@ -1,6 +1,9 @@
-from flask.wrappers import Response 
-from typing import Protocol, Optional
+from typing import Optional, Protocol
+
+from flask.wrappers import Response
+
 from .domain_types import Tokens, UserProfile
+
 
 class OAuth2Client(Protocol):
     """Abstract OAuth2 client interface (provider-agnostic)."""

@@ -1,5 +1,7 @@
-from flask import session, make_response
+from flask import make_response, session
+
 from . import account_bp as bp
+
 
 @bp.get("/me")
 def whoami():

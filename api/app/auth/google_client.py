@@ -1,9 +1,12 @@
 import os
-from flask.wrappers import Response
 from typing import Optional
+
 from authlib.integrations.flask_client import OAuth
-from .oauth2_client import OAuth2Client
+from flask.wrappers import Response
+
 from .domain_types import Tokens, UserProfile
+from .oauth2_client import OAuth2Client
+
 
 class GoogleClient(OAuth2Client):
     name = "google"
@@ -20,7 +23,9 @@ class GoogleClient(OAuth2Client):
     def authorize_url(self, *, redirect_uri: str) -> Response:
         return self.client.authorize_redirect(redirect_uri)
 
-    def exchange_code(self, *, code: str, redirect_uri: str, code_verifier: Optional[str]) -> Tokens:
+    def exchange_code(
+        self, *, code: str, redirect_uri: str, code_verifier: Optional[str]
+    ) -> Tokens:
         token = self.client.fetch_access_token(
             code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
         )
@@ -44,10 +49,12 @@ class GoogleClient(OAuth2Client):
             raw=info,
         )
 
-    # Optional extras (Google supports both) They exist here for completeness but are not used 
+    # Optional extras (Google supports both) They exist here for completeness but are not used
     # in the current app implementation as we only use this for sign-in.
     def refresh(self, refresh_token: str) -> Tokens:
-        token = self.client.refresh_token(self.client.access_token_url, refresh_token=refresh_token)
+        token = self.client.refresh_token(
+            self.client.access_token_url, refresh_token=refresh_token
+        )
         return Tokens(
             access_token=token.get("access_token"),
             refresh_token=token.get("refresh_token") or refresh_token,
@@ -58,4 +65,8 @@ class GoogleClient(OAuth2Client):
         )
 
     def revoke(self, token: str, token_type_hint: str = "access_token") -> None:
-        self.client.revoke_token("https://oauth2.googleapis.com/revoke", token, token_type_hint=token_type_hint)
+        self.client.revoke_token(
+            "https://oauth2.googleapis.com/revoke",
+            token,
+            token_type_hint=token_type_hint,
+        )

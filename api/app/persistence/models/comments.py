@@ -1,7 +1,11 @@
 from __future__ import annotations
-from app.extensions import db
+
 from sqlalchemy import Index
+
+from app.extensions import db
+
 from .mixins import SurrogatePK, TimestampMixin
+
 
 class CardComment(db.Model):
     __tablename__ = "card_comments"
@@ -12,12 +16,21 @@ class CardComment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    card_id = db.Column(db.Integer, db.ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True)
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey("cards.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     author_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
 
     body = db.Column(db.Text, nullable=False)
 
-    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        server_default=db.func.now(),
+        nullable=False,
+    )
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     edited_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     edit_count = db.Column(db.Integer, nullable=False, server_default="0")
@@ -36,6 +49,7 @@ class CardComment(db.Model):
     def __repr__(self) -> str:
         return f"<CardComment id={self.id} card={self.card_id} edits={self.edit_count}>"
 
+
 class CommentEdit(db.Model):
     __tablename__ = "comment_edits"
     __table_args__ = (
@@ -43,11 +57,22 @@ class CommentEdit(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    comment_id = db.Column(db.Integer, db.ForeignKey("card_comments.id", ondelete="CASCADE"), nullable=False, index=True)
-    editor_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    comment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("card_comments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    editor_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
 
     previous_body = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        server_default=db.func.now(),
+        nullable=False,
+    )
 
     comment = db.relationship("CardComment", back_populates="edits")
     editor = db.relationship("User")

@@ -1,8 +1,12 @@
 from __future__ import annotations
-from app.extensions import db
+
 from sqlalchemy import Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
+
+from app.extensions import db
+
 from .mixins import SurrogatePK, TimestampMixin
+
 
 class User(db.Model, SurrogatePK, TimestampMixin):
     __tablename__ = "users"
@@ -12,10 +16,13 @@ class User(db.Model, SurrogatePK, TimestampMixin):
     last_login_at = db.Column(db.DateTime(timezone=True))
     terms_accepted_at = db.Column(db.DateTime(timezone=True))
 
-    identities = db.relationship("Identity", back_populates="user", cascade="all, delete-orphan")
+    identities = db.relationship(
+        "Identity", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} name={self.display_name!r}>"
+
 
 class Identity(db.Model, SurrogatePK, TimestampMixin):
     __tablename__ = "identities"
@@ -24,9 +31,14 @@ class Identity(db.Model, SurrogatePK, TimestampMixin):
         Index("ix_identities_user_id_provider", "user_id", "provider"),
     )
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    provider = db.Column(db.String(40), nullable=False)      # "google", "github", "discord"
-    subject = db.Column(db.String(255), nullable=False)      # stable provider user id / sub
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    provider = db.Column(db.String(40), nullable=False)  # "google", "github", "discord"
+    subject = db.Column(db.String(255), nullable=False)  # stable provider user id / sub
     email_at_auth = db.Column(db.String(255))
     profile_json = db.Column(JSONB)
 

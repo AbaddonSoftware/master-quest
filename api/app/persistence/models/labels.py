@@ -1,7 +1,11 @@
 from __future__ import annotations
+
+from sqlalchemy import Index, UniqueConstraint
+
 from app.extensions import db
-from sqlalchemy import UniqueConstraint, Index
+
 from .mixins import SurrogatePK, TimestampMixin
+
 
 class Label(db.Model, SurrogatePK, TimestampMixin):
     __tablename__ = "labels"
@@ -10,7 +14,11 @@ class Label(db.Model, SurrogatePK, TimestampMixin):
         Index("ix_labels_room", "room_id"),
     )
 
-    room_id = db.Column(db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
+    room_id = db.Column(
+        db.Integer,
+        db.ForeignKey("rooms.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     name = db.Column(db.String(64), nullable=False)
     color = db.Column(db.String(16))
 
@@ -19,6 +27,7 @@ class Label(db.Model, SurrogatePK, TimestampMixin):
     def __repr__(self) -> str:
         return f"<Label id={self.id} room={self.room_id} name={self.name!r}>"
 
+
 class CardLabel(db.Model):
     __tablename__ = "card_labels"
     __table_args__ = (
@@ -26,5 +35,13 @@ class CardLabel(db.Model):
         db.Index("ix_card_labels_label", "label_id"),
     )
 
-    card_id = db.Column(db.Integer, db.ForeignKey("cards.id", ondelete="CASCADE"), primary_key=True)
-    label_id = db.Column(db.Integer, db.ForeignKey("labels.id", ondelete="CASCADE"), primary_key=True)
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey("cards.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    label_id = db.Column(
+        db.Integer,
+        db.ForeignKey("labels.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
