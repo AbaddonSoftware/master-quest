@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+from app.extensions import db
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.extensions import db
-
-from .mixins import SurrogatePK
+from ..orm.mixins import SurrogatePK
 
 
 class ActivityLog(db.Model, SurrogatePK):
-    __tablename__ = "activity_logs"
+    __tablename__ = "activity_log"
     __table_args__ = (Index("ix_activity_room_created", "room_id", "created_at"),)
 
     room_id = db.Column(

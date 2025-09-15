@@ -1,6 +1,6 @@
 from sqlalchemy.dialects.postgresql import ENUM
 
-RoleEnum = ENUM(
+Role = ENUM(
     "owner",
     "admin",
     "member",

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from app.extensions import db
 from sqlalchemy import Index, UniqueConstraint
 
-from app.extensions import db
-
-from .enums import RoleEnum
-from .mixins import SurrogatePK, TimestampMixin
+from .enums import Role
+from ..orm.mixins import SurrogatePK, TimestampMixin
 
 
 class Invitation(db.Model, SurrogatePK, TimestampMixin):
@@ -21,7 +20,7 @@ class Invitation(db.Model, SurrogatePK, TimestampMixin):
         nullable=False,
     )
     issuer_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    role = db.Column(RoleEnum, nullable=False, server_default="member")
+    role = db.Column(Role, nullable=False, server_default="member")
 
     token = db.Column(
         db.String(120), nullable=False

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from app.extensions import db
 from sqlalchemy import Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.extensions import db
-
-from .mixins import SurrogatePK, TimestampMixin
+from ..orm.mixins import SurrogatePK, TimestampMixin
 
 
 class User(db.Model, SurrogatePK, TimestampMixin):
