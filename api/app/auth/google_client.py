@@ -45,7 +45,6 @@ class GoogleClient(OAuth2Client):
             subject=info.get("sub", ""),
             email=info.get("email"),
             name=info.get("name") or info.get("given_name"),
-            picture=info.get("picture"),
             raw=info,
         )
 

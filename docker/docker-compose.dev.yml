@@ -11,6 +11,8 @@ services:
       POSTGRES_INITDB_ARGS: "--auth-local=scram-sha-256 --auth-host=scram-sha-256"
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./initdb.d:/docker-entrypoint-initdb.d:ro  
+
     ports:
       - "5432:5432"
 
@@ -30,11 +32,10 @@ services:
     expose:
       - "5000"
     command: >
-      gunicorn "wsgi:app"
-      -b 0.0.0.0:5000
-      -w 1 --threads 4
-      --timeout 20 --keep-alive 5
-      --reload
+      sh -c "
+      alembic upgrade head &&
+      gunicorn 'wsgi:app' -b 0.0.0.0:5000 -w 1 --threads 4 --timeout 20 --keep-alive 5 --reload"
+
 
   nginx:
     image: nginx:stable-alpine

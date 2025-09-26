@@ -1,0 +1,216 @@
+@startuml
+legend 
+  * or {PK}      Primary Key
+  {FK}           Foreign Key
+  {U}            Unique
+  ! or {NN}      NOT NULL
+  ? or {NULL}    NULL
+  {DEFAULT v}    Default value v
+  {CHECK ...}    Check constraint (informational)
+  Cardinality:
+    ||   exactly one
+    |o   zero or one
+    }|   one or many
+    }o   zero or many
+  Identifying -- (dependent on parent)
+  Non-identifying .. (independent)
+end legend
+
+
+' ===================== ENTITIES =====================
+entity "users" as users {
+  *id: INT
+  --
+  user_name: VARCHAR(128)
+  display_name: VARCHAR(128)
+  email: VARCHAR(255)? {U}
+  first_name: VARCHAR(128)
+  last_name: VARCHAR(128)
+  terms_accepted_at: TIMESTAMPTZ
+  last_login_at: TIMESTAMPTZ
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+}
+
+entity "identities" as identities {
+  *id: INT
+  --
+  user_id: INT {FK -> users.id ON DELETE CASCADE}
+  provider: VARCHAR(50)
+  subject: VARCHAR(255)
+  created_at: TIMESTAMPTZ
+  UNIQUE(provider, subject)
+  INDEX(user_id)
+}
+
+entity "rooms" as rooms {
+  *id: INT
+  --
+  owner_id: INT {FK -> users.id ON DELETE RESTRICT}
+  name: VARCHAR(128)
+  is_public: BOOLEAN
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+  INDEX(is_public)
+  UNIQUE(owner_id, name)
+}
+
+entity "room_members" as members {
+  *room_id: INT {FK -> rooms.id ON DELETE CASCADE}
+  *user_id: INT {FK -> users.id ON DELETE CASCADE}
+  --
+  role: VARCHAR(32)
+  joined_at: TIMESTAMPTZ
+  UNIQUE(room_id, user_id)
+}
+
+entity "boards" as boards {
+  *id: INT
+  --
+  room_id: INT {FK -> rooms.id ON DELETE CASCADE}
+  name: VARCHAR(120)
+  deleted_at?: TIMESTAMPTZ <<soft delete>>
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+  UNIQUE(room_id) WHERE deleted_at IS NULL
+}
+
+entity "board_columns" as columns {
+  *id: INT
+  --
+  board_id: INT {FK -> boards.id ON DELETE CASCADE}
+  parent_id?: INT {FK -> columns.id ON DELETE SET NULL}
+  title: VARCHAR(128)
+  position: INT {CHECK position >= 0}
+  wip_limit?: INT {CHECK wip_limit IS NULL OR wip_limit >= 0}
+  deleted_at?: TIMESTAMPTZ
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+  UNIQUE(board_id, parent_id, position) WHERE deleted_at IS NULL
+  UNIQUE(id, board_id)  
+  INDEX(board_id, parent_id, position)
+  {CHECK parent_id IS NULL OR parent_id <> id}
+  INDEX(board_id) WHERE deleted_at IS NULL
+}
+
+entity "swim_lanes" as lanes {
+  *id: INT
+  --
+  board_id: INT {FK -> boards.id ON DELETE CASCADE}
+  title: VARCHAR(128)
+  position: INT {CHECK position >= 0}
+  deleted_at?: TIMESTAMPTZ
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+  UNIQUE(id, board_id)  
+  UNIQUE(board_id, position) WHERE deleted_at IS NULL
+  INDEX(board_id) WHERE deleted_at IS NULL
+}
+
+entity "cards" as cards {
+  *id: INT
+  --
+  board_id: INT {FK -> boards.id ON DELETE CASCADE}
+  column_id: INT
+  lane_id?: INT
+  title: VARCHAR(255)
+  description?: TEXT
+  position: INT {CHECK position >= 0} ' position within column
+  deleted_at?: TIMESTAMPTZ
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ
+  UNIQUE(column_id, position) WHERE deleted_at IS NULL
+  INDEX(board_id, column_id, position)
+  INDEX(board_id, column_id, lane_id)
+  INDEX(board_id) WHERE deleted_at IS NULL
+}
+
+entity "card_assignments" as card_assignments {
+  *user_id: INT {FK -> users.id ON DELETE CASCADE}
+  *card_id: INT {FK -> cards.id ON DELETE CASCADE}
+  --
+  assigned_at: TIMESTAMPTZ
+  INDEX(card_id)
+}
+
+entity "comments" as comments {
+  *id: INT
+  --
+  card_id: INT {FK -> cards.id ON DELETE CASCADE}
+  author_id?: INT {FK -> users.id ON DELETE SET NULL}
+  parent_id?: INT {FK -> comments.id ON DELETE SET NULL}   
+  root_id?: INT {FK -> comments.id ON DELETE SET NULL}     
+  body: TEXT
+  created_at: TIMESTAMPTZ
+  updated_at: TIMESTAMPTZ                                   
+  deleted_at?: TIMESTAMPTZ
+  {CHECK parent_id IS NULL OR parent_id <> id}
+  INDEX(card_id, root_id, parent_id, created_at)
+  INDEX(card_id, created_at DESC)
+  INDEX(updated_at)                                         
+}
+
+entity "invitations" as invites {
+  *id: INT
+  --
+  room_id: INT {FK -> rooms.id ON DELETE CASCADE}
+  created_by_id?: INT {FK -> users.id ON DELETE SET NULL}
+  code: VARCHAR(40)
+  redemption_max: INT {CHECK redemption_max >= 1}
+  expires_at: TIMESTAMPTZ
+  created_at: TIMESTAMPTZ
+  deleted_at?: TIMESTAMPTZ
+  UNIQUE(room_id, code) WHERE deleted_at IS NULL
+  INDEX(room_id, code)
+  INDEX(expires_at)
+}
+
+entity "invite_redemptions" as redemptions {
+  *id: INT
+  --
+  invite_id: INT {FK -> invites.id ON DELETE CASCADE}
+  redeemed_by_id?: INT {FK -> users.id ON DELETE SET NULL}
+  redeemed_at: TIMESTAMPTZ {DEFAULT now()}
+  UNIQUE(invite_id, redeemed_by_id)
+  INDEX(invite_id)
+}
+
+' ===================== RELATIONSHIPS =====================
+' Auth & identity
+users ||--o{ identities
+
+' Ownership & membership
+users ||--o{ rooms : owns
+users ||--o{ members : memberships
+rooms ||--o{ members : members
+
+' Invitations
+rooms ||--o{ invites : own
+users ||--o{ invites : created
+invites ||--o{ redemptions : redeemed
+users ||--o{ redemptions : accepted
+
+' Boards under rooms (many boards; only one active at a time via partial unique)
+rooms ||--o{ boards : many boards, only one active (non-soft-deleted)
+
+' Columns & lanes on a board
+boards ||--o{ columns
+boards ||--o{ lanes
+columns ||--o{ columns : subcolumns
+
+' Cards belong to board + column (lane optional)
+boards ||--o{ cards
+columns ||--o{ cards
+lanes |o--o{ cards : optional
+
+' Card assignments (many-to-many users<->cards)
+users ||--o{ card_assignments
+cards ||--o{ card_assignments
+
+' Comments on cards by users
+cards ||--o{ comments
+users ||--o{ comments : authors
+
+' Threading (self-referential)
+comments ||--o{ comments : replies   ' parent -> children
+@enduml

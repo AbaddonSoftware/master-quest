@@ -84,16 +84,26 @@ POLICY: dict[Permission, Check] = {
     Permission.PURGE: flag("is_owner"),
 }
 
-# --- Public API ---------------------------------------------------------------
+# --- Public API ---
 
 
 def can(
     *, role: str, permission: Permission, ctx: Mapping[str, object] | None = None
 ) -> bool:
     """
-    Evaluate central policy. `ctx` may include:
-      is_author: bool  (for comment/card authored-by checks)
-      is_owner:  bool  (room owner)
+    Central policy evaluation.
+
+    Args:
+        role: The user's role in the room (e.g. "owner", "admin", "member", "viewer").
+        permission: The specific Permission being checked.
+        ctx: Extra flags derived from the database, never from client input.
+            Supported keys:
+              - is_owner  (bool): True if the user is the room owner.
+              - is_author (bool): True if the user authored the target resource
+                (e.g. a card or comment, depending on context).
+
+    Returns:
+        True if the policy allows the action, False otherwise.
     """
     check = POLICY.get(permission)
     if check is None:

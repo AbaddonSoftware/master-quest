@@ -25,19 +25,10 @@ def callback_google():
             "sub": user.subject,
             "email": user.email,
             "name": user.name,
-            "picture": user.picture,
         }
         return redirect(nxt, code=302)
     except Exception as e:
         return jsonify({"error": type(e).__name__, "message": str(e)}), 400
-
-
-# @bp.get("/me")
-# def whoami():
-#     u = session.get("user")
-#     resp = make_response({"authenticated": bool(u), "user": u}, 200 if u else 401)
-#     resp.headers["Cache-Control"] = "no-store"
-#     return resp
 
 
 @bp.post("/logout")

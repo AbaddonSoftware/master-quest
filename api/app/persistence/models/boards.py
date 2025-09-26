@@ -1,91 +1,151 @@
 from __future__ import annotations
 
 from app.extensions import db
-from sqlalchemy import CheckConstraint, Index, UniqueConstraint, and_
-from sqlalchemy.orm import foreign
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    String,
+    UniqueConstraint,
+    text,
+)
+from sqlalchemy.orm import Mapped, backref, relationship
 
-from .enums import LaneType, Role
 from ..orm.mixins import DeletedAtMixin, PublicIdMixin, SurrogatePK, TimestampMixin
+from .enums import LaneType
 
 
 class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
     __tablename__ = "boards"
-    __table_args__ = (
-        UniqueConstraint(
-            "room_id", "name", name="uq_boards_room_name"
-        ),  # migrate to partial unique
-        Index("ix_boards_room_id", "room_id"),
-        Index(
-            "uq_boards_room_slug",
-            "room_id",
-            "slug",
-            unique=True,
-            postgresql_where=db.text("slug IS NOT NULL AND deleted_at IS NULL"),
-        ),
-    )
+
     room_id = db.Column(
-        db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False
+        db.Integer,
+        ForeignKey("rooms.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
-    name = db.Column(db.String(120), nullable=False)
-    slug = db.Column(db.Text)
+    name = db.Column(String(120), nullable=False)
 
-    room = db.relationship("Room")
+    room: Mapped["Room"] = relationship("Room", back_populates="boards")
 
-    columns = db.relationship(
+    columns: Mapped[list["BoardColumn"]] = relationship(
         "BoardColumn",
-        primaryjoin="and_(Board.id == foreign(BoardColumn.board_id), BoardColumn.deleted_at.is_(None))",
+        back_populates="board",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        primaryjoin="and_(Board.id==foreign(BoardColumn.board_id), BoardColumn.deleted_at.is_(None))",
         order_by="BoardColumn.position",
-        lazy="selectin",
     )
-    lanes = db.relationship(
+    lanes: Mapped[list["SwimLane"]] = relationship(
         "SwimLane",
-        primaryjoin="and_(Board.id == foreign(SwimLane.board_id), SwimLane.deleted_at.is_(None))",
+        back_populates="board",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        primaryjoin="and_(Board.id==foreign(SwimLane.board_id), SwimLane.deleted_at.is_(None))",
         order_by="SwimLane.position",
-        lazy="selectin",
     )
-    cards = db.relationship(
+    cards: Mapped[list["Card"]] = relationship(
         "Card",
-        primaryjoin="and_(Board.id == foreign(Card.board_id), Card.deleted_at.is_(None))",
-        lazy="selectin",
+        back_populates="board",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        primaryjoin="and_(Board.id==foreign(Card.board_id), Card.deleted_at.is_(None))",
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_boards_room_id_active",
+            "room_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
     )
 
 
 class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     __tablename__ = "board_columns"
-    __table_args__ = (
-        UniqueConstraint(
-            "board_id", "name", name="uq_board_columns_board_name"
-        ),  # migrate to partial unique
-        Index("ix_board_columns_board_position", "board_id", "position"),
-        CheckConstraint("position >= 0", name="ck_board_columns_position_nonneg"),
-    )
-    board_id = db.Column(
-        db.Integer, db.ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
-    )
-    name = db.Column(db.String(64), nullable=False)
-    position = db.Column(db.Integer, nullable=False, server_default=db.text("0"))
 
-    board = db.relationship("Board")
+    board_id = db.Column(
+        db.Integer,
+        ForeignKey("boards.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    parent_id = db.Column(db.Integer, nullable=True)
+    title = db.Column(String(128), nullable=False)
+    position = db.Column(db.Integer, nullable=False, server_default=text("0"))
+    wip_limit = db.Column(db.Integer, nullable=True)
+
+    board: Mapped["Board"] = relationship("Board", back_populates="columns")
+    parent: Mapped["BoardColumn"] = relationship(
+        "BoardColumn",
+        remote_side="BoardColumn.id",
+        backref=backref("children", cascade="all, delete-orphan"),
+    )
+
+    __table_args__ = (
+        CheckConstraint("position >= 0", name="ck_columns_position_nonneg"),
+        CheckConstraint(
+            "wip_limit IS NULL OR wip_limit >= 0", name="ck_columns_wip_nonneg"
+        ),
+        CheckConstraint(
+            "parent_id IS NULL OR parent_id <> id", name="ck_columns_no_self_parent"
+        ),
+        UniqueConstraint("id", "board_id", name="uq_columns_id_board"),
+        ForeignKeyConstraint(
+            ["parent_id", "board_id"],
+            ["board_columns.id", "board_columns.board_id"],
+            name="fk_columns_parent_same_board",
+            ondelete="SET NULL",
+            use_alter=True,
+        ),
+        Index(
+            "uq_columns_board_parent_position_active",
+            "board_id",
+            "parent_id",
+            "position",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index("ix_columns_board_parent_position", "board_id", "parent_id", "position"),
+        Index(
+            "ix_columns_board_active",
+            "board_id",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
 
 class SwimLane(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     __tablename__ = "swim_lanes"
-    __table_args__ = (
-        UniqueConstraint(
-            "board_id", "name", name="uq_swim_lanes_board_name"
-        ),  # migrate to partial unique
-        Index("ix_swim_lanes_board_position", "board_id", "position"),
-        CheckConstraint("position >= 0", name="ck_swim_lanes_position_nonneg"),
-    )
-    board_id = db.Column(
-        db.Integer, db.ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
-    )
-    name = db.Column(db.String(64), nullable=False)
-    type = db.Column(
-        LaneType,
-        nullable=False,
-        server_default="standard",
-    )
-    position = db.Column(db.Integer, nullable=False, server_default=db.text("0"))
 
-    board = db.relationship("Board")
+    board_id = db.Column(
+        db.Integer,
+        ForeignKey("boards.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title = db.Column(String(128), nullable=False)
+    position = db.Column(db.Integer, nullable=False, server_default=text("0"))
+    lane_type = db.Column(LaneType, nullable=False, server_default=text("'standard'"))
+
+    board: Mapped["Board"] = relationship("Board", back_populates="lanes")
+
+    __table_args__ = (
+        CheckConstraint("position >= 0", name="ck_lanes_position_nonneg"),
+        # ✅ make the referenced pair unique so (lane_id, board_id) can point to it
+        UniqueConstraint("id", "board_id", name="uq_lanes_id_board"),
+        Index(
+            "uq_lanes_board_position_active",
+            "board_id",
+            "position",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "ix_lanes_board_active",
+            "board_id",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )

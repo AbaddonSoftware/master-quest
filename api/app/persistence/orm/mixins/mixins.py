@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+
 from sqlalchemy import Column, DateTime, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
 
 # --- Mixins ----------------------------------------------------------------------
+
 
 class SurrogatePK:
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -32,10 +34,13 @@ class TimestampMixin:
         nullable=False,
     )
 
+
 def _ensure_aware(dt: datetime) -> datetime:
     """Return a tz-aware datetime. If naive, assume UTC; otherwise return as-is."""
     is_aware = (dt.tzinfo is not None) and (dt.utcoffset() is not None)
     return dt if is_aware else dt.replace(tzinfo=timezone.utc)
+
+
 class DeletedAtMixin:
     """Soft delete support. Null = active; Non-null = soft-deleted."""
 
@@ -50,9 +55,7 @@ class DeletedAtMixin:
         self, actor_id: int | None = None, timestamp: datetime | None = None
     ) -> None:
         self.deleted_by_id = actor_id
-        self.deleted_at = (
-            func.now() if timestamp is None else _ensure_aware(timestamp)
-        )
+        self.deleted_at = func.now() if timestamp is None else _ensure_aware(timestamp)
 
     def restore(self):
         self.deleted_by_id = None

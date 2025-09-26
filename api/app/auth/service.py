@@ -1,7 +1,8 @@
-# api/app/auth/service.py
 import os
 from typing import Mapping, Optional, Tuple
 
+from app.extensions import db
+from app.persistence.models import Identity, User
 from authlib.integrations.flask_client import OAuth
 from flask import session
 
@@ -13,6 +14,42 @@ from .utils import sanitize_next_path
 _oauth: Optional[OAuth] = None
 _client: Optional[OAuth2Client] = None
 _boot = False
+
+
+def _upsert_user_identity(user: UserProfile) -> User:
+    """
+    Ensure (provider, subject) exists; create User if first-time.
+    """
+    ident = (
+        db.session.query(Identity)
+        .filter(Identity.provider == user.provider, Identity.subject == user.subject)
+        .first()
+    )
+    if ident:
+        if user.email and ident.user.email is None:
+            ident.user.email = user.email
+        if user.name and ident.user.name is None:
+            ident.user.name = user.name
+        db.session.commit()
+        return ident.user
+
+    u = User(
+        email=user.email,
+        name=user.name,
+    )
+    db.session.add(u)
+    db.session.flush()
+
+    i = Identity(
+        user_id=u.id,
+        provider=user.provider,
+        subject=user.subject,
+        email_at_auth=user.email,
+        #    profile_json=user.raw,
+    )
+    db.session.add(i)
+    db.session.commit()
+    return u
 
 
 def _base() -> str:
@@ -58,9 +95,8 @@ def finish_login(params: Mapping[str, str]) -> Tuple[UserProfile, Tokens, str]:
         subject=info.get("sub", ""),
         email=info.get("email"),
         name=info.get("name") or info.get("given_name"),
-        picture=info.get("picture"),
         raw=info,
     )
-
+    _upsert_user_identity(user)
     next_path = session.pop("post_login_next", "/")
     return user, tokens, next_path

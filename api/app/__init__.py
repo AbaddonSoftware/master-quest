@@ -1,4 +1,6 @@
-from flask import Flask
+from app.auth import load_current_user
+from flask import Flask, jsonify
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import DevConfig, ProdConfig
@@ -26,8 +28,20 @@ def create_app():
     from .auth import auth_bp
 
     flask_app.register_blueprint(auth_bp)
+
     from .account import account_bp
 
     flask_app.register_blueprint(account_bp)
+
+    @flask_app.before_request
+    def _attach_user():
+        load_current_user()
+
+    @flask_app.errorhandler(HTTPException)
+    def _http_error(e):
+        return (
+            jsonify({"error": e.name, "status": e.code, "message": e.description}),
+            e.code,
+        )
 
     return flask_app

@@ -1,47 +1,100 @@
 from __future__ import annotations
 
 from app.extensions import db
-from sqlalchemy import Index, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import CITEXT
+from sqlalchemy.orm import Mapped, relationship
 
-from ..orm.mixins import SurrogatePK, TimestampMixin
+from ..orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
-class User(db.Model, SurrogatePK, TimestampMixin):
+class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __tablename__ = "users"
-    email = db.Column(db.String(255), unique=True, nullable=True, index=True)
-    display_name = db.Column(db.String(120), nullable=False)
-    avatar_url = db.Column(db.Text, nullable=True)
-    last_login_at = db.Column(db.DateTime(timezone=True))
-    terms_accepted_at = db.Column(db.DateTime(timezone=True))
 
-    identities = db.relationship(
-        "Identity", back_populates="user", cascade="all, delete-orphan"
+    user_name = db.Column(String(128), nullable=False)
+    display_name = db.Column(String(128), nullable=True)
+    email = db.Column(CITEXT, nullable=True, index=True)
+    first_name = db.Column(String(128), nullable=True)
+    last_name = db.Column(String(128), nullable=True)
+    terms_accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    is_guest = db.Column(
+        db.Boolean, nullable=False, server_default=text("false"), index=True
+    )
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    identities: Mapped[list["Identity"]] = relationship(
+        "Identity",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    rooms_owned: Mapped[list["Room"]] = relationship(
+        "Room",
+        back_populates="owner",
+        cascade="save-update, merge",
+        passive_deletes=True,
+    )
+    memberships: Mapped[list["RoomMember"]] = relationship(
+        "RoomMember",
+        back_populates="user",
+        cascade="save-update, merge",
+        passive_deletes=True,
+    )
+    comments: Mapped[list["Comment"]] = relationship(
+        "Comment",
+        back_populates="author",
+        cascade="save-update, merge",
+        passive_deletes=True,
     )
 
-    def __repr__(self) -> str:
-        return f"<User id={self.id} email={self.email!r} name={self.display_name!r}>"
+    __table_args__ = (
+        CheckConstraint("length(email) <= 320", name="ck_users_email_length"),
+        Index(
+            "uq_users_email_lower",
+            func.lower(email),
+            unique=True,
+            postgresql_where=email.isnot(None),
+        ),
+        Index(
+            "uq_users_user_name_lower",
+            func.lower(user_name),
+            unique=True,
+            postgresql_where=user_name.isnot(None),
+        ),
+        CheckConstraint(
+            "(is_guest = false) OR (expires_at IS NOT NULL)",
+            name="ck_users_guest_requires_expires_at",
+        ),
+        Index(
+            "ix_users_expiring_guests_active",
+            "expires_at",
+            postgresql_where=text("is_guest = true"),
+        ),
+    )
 
 
 class Identity(db.Model, SurrogatePK, TimestampMixin):
     __tablename__ = "identities"
-    __table_args__ = (
-        UniqueConstraint("provider", "subject", name="uq_identity_provider_subject"),
-        Index("ix_identities_user_id_provider", "user_id", "provider"),
-    )
 
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    provider = db.Column(db.String(40), nullable=False)  # "google", "github", "discord"
-    subject = db.Column(db.String(255), nullable=False)  # stable provider user id / sub
-    email_at_auth = db.Column(db.String(255))
-    profile_json = db.Column(JSONB)
+    provider = db.Column(String(50), nullable=False)
+    subject = db.Column(String(255), nullable=False)
 
-    user = db.relationship("User", back_populates="identities")
+    user: Mapped["User"] = relationship("User", back_populates="identities")
 
-    def __repr__(self) -> str:
-        return f"<Identity {self.provider}:{self.subject} user={self.user_id}>"
+    __table_args__ = (
+        UniqueConstraint("provider", "subject", name="uq_identities_provider_subject"),
+    )

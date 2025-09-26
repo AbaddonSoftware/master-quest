@@ -1,37 +1,81 @@
 from __future__ import annotations
 
 from app.extensions import db
-from sqlalchemy import Index, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.orm import Mapped, relationship
 
-from .enums import Role
-from ..orm.mixins import SurrogatePK, TimestampMixin
+from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
-class Invitation(db.Model, SurrogatePK, TimestampMixin):
+class Invitation(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     __tablename__ = "invitations"
-    __table_args__ = (
-        UniqueConstraint("token", name="uq_invitations_token"),
-        Index("ix_invitations_room_expires", "room_id", "expires_at"),
-    )
 
     room_id = db.Column(
         db.Integer,
-        db.ForeignKey("rooms.id", ondelete="CASCADE"),
+        ForeignKey("rooms.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
-    issuer_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    role = db.Column(Role, nullable=False, server_default="member")
-
-    token = db.Column(
-        db.String(120), nullable=False
-    )  # base64url/hex, >=128 bits entropy
+    created_by_id = db.Column(
+        db.Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    code_hash = db.Column(String(128), nullable=False)  # HMAC-SHA256 hex
+    redemption_max = db.Column(db.Integer, nullable=False)
     expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
-    used_at = db.Column(db.DateTime(timezone=True))
 
-    room = db.relationship("Room", back_populates="invitations")
-    issuer = db.relationship("User")
+    room: Mapped["Room"] = relationship("Room")
+    creator: Mapped["User"] = relationship("User")
 
-    def __repr__(self) -> str:
-        return (
-            f"<Invitation id={self.id} room={self.room_id} expires={self.expires_at}>"
-        )
+    __table_args__ = (
+        CheckConstraint("redemption_max >= 1", name="ck_invites_redemption_max"),
+        Index(
+            "uq_invites_room_code_hash_active",
+            "room_id",
+            "code_hash",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index("ix_invites_room_codehash", "room_id", "code_hash"),
+        Index("ix_invites_expires_at", "expires_at"),
+    )
+
+
+class InviteRedemption(db.Model, SurrogatePK, TimestampMixin):
+    __tablename__ = "invite_redemptions"
+
+    invite_id = db.Column(
+        db.Integer,
+        ForeignKey("invitations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    redeemed_by_id = db.Column(
+        db.Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=False,
+        index=True,
+    )
+    redeemed_at = db.Column(
+        db.DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    invite: Mapped["Invitation"] = relationship("Invitation")
+    redeemed_by: Mapped["User"] = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "invite_id", "redeemed_by_id", name="uq_redemptions_invite_user"
+        ),
+        Index("ix_redemptions_invite", "invite_id"),
+    )

@@ -1,68 +1,89 @@
 from __future__ import annotations
 
 from app.extensions import db
-from sqlalchemy import Index, UniqueConstraint, and_
-from sqlalchemy.orm import foreign
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.orm import Mapped, relationship
 
-from .enums import Role
-from ..orm.mixins import DeletedAtMixin, PublicIdMixin, SurrogatePK, TimestampMixin
+from ..orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
+from .enums import Role, RoomKind
 
 
-class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
+class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __tablename__ = "rooms"
-    __table_args__ = (
-        UniqueConstraint(
-            "owner_id", "name", name="uq_rooms_owner_name"
-        ),  # replace with partial unique via Alembic
-        Index("ix_rooms_is_public", "is_public"),
-        Index(
-            "uq_rooms_owner_slug",
-            "owner_id",
-            "slug",
-            unique=True,
-            postgresql_where=db.text("slug IS NOT NULL AND deleted_at IS NULL"),
-        ),
-    )
+
     owner_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id", ondelete="RESTRICT"),
+        ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
-    name = db.Column(db.String(120), nullable=False)
-    is_public = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
-    slug = db.Column(db.Text)
-
-    owner = db.relationship("User", foreign_keys=[owner_id])
-
-    # IMPORTANT: remove delete-orphan; we soft-delete children via service code when needed.
-    boards = db.relationship(
+    name = db.Column(String(128), nullable=False)
+    is_public = db.Column(Boolean, nullable=False, server_default=text("false"))
+    kind = db.Column(RoomKind, nullable=False, server_default=text("'normal'"))
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    owner: Mapped["User"] = relationship("User", back_populates="rooms_owned")
+    members: Mapped[list["RoomMember"]] = relationship(
+        "RoomMember",
+        back_populates="room",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    boards: Mapped[list["Board"]] = relationship(
         "Board",
-        primaryjoin="and_(Room.id == foreign(Board.room_id), Board.deleted_at.is_(None))",
-        lazy="selectin",
+        back_populates="room",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
-    invitations = db.relationship(
-        "Invitation", back_populates="room", cascade="all, delete-orphan"
-    )
-    activity = db.relationship(
-        "ActivityLog", back_populates="room", cascade="all, delete-orphan"
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "name", name="uq_rooms_owner_name"),
+        Index(
+            "uq_rooms_owner_one_guest_active",  # name
+            "owner_id",  # column(s)
+            unique=True,
+            postgresql_where=text("kind = 'guest'"),
+        ),
+        Index("ix_rooms_is_public", "is_public"),
+        CheckConstraint(
+            "(kind <> 'guest') OR (expires_at IS NOT NULL)",
+            name="ck_rooms_guest_requires_expires_at",
+        ),
+        Index(
+            "ix_rooms_expiring_active",
+            "expires_at",
+            postgresql_where=text("kind = 'guest'"),
+        ),
     )
 
 
-class RoomMember(db.Model, TimestampMixin):
+class RoomMember(db.Model):
     __tablename__ = "room_members"
-    __table_args__ = (db.Index("ix_room_members_user", "user_id"),)
+
     room_id = db.Column(
-        db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), primary_key=True
+        db.Integer, ForeignKey("rooms.id", ondelete="CASCADE"), primary_key=True
     )
     user_id = db.Column(
-        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+        db.Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    role = db.Column(
-        Role,
-        nullable=False,
-        server_default="viewer",
+    role = db.Column(Role, nullable=False, server_default=text("'member'"))
+    joined_at = db.Column(
+        db.DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    room = db.relationship("Room")
-    user = db.relationship("User")
+    room: Mapped["Room"] = relationship("Room", back_populates="members")
+    user: Mapped["User"] = relationship("User", back_populates="memberships")
+
+    __table_args__ = (
+        UniqueConstraint("room_id", "user_id", name="uq_room_members_unique"),
+        Index("ix_room_members_room_id", "room_id"),
+        Index("ix_room_members_user_id", "user_id"),
+    )

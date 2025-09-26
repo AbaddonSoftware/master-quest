@@ -1,48 +1,53 @@
 from __future__ import annotations
 
 from app.extensions import db
-from sqlalchemy import Index
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Text, text
+from sqlalchemy.orm import Mapped, backref, relationship
 
-from ..orm.mixins import DeletedAtMixin, TimestampMixin
+from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
-class CardComment(db.Model, TimestampMixin, DeletedAtMixin):
-    __tablename__ = "card_comments"
-    __table_args__ = (
-        Index("ix_card_comments_card_created", "card_id", "created_at"),
-        Index("ix_card_comments_card_updated", "card_id", "updated_at"),
-    )
-    id = db.Column(db.Integer, primary_key=True)
+class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
+    __tablename__ = "comments"
+
     card_id = db.Column(
         db.Integer,
-        db.ForeignKey("cards.id", ondelete="CASCADE"),
+        ForeignKey("cards.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    author_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    body = db.Column(db.Text, nullable=False)
-
-    # creation & edit metadata
-    edited_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    edit_count = db.Column(db.Integer, nullable=False, server_default="0")
-
-
-class CommentEdit(db.Model):
-    __tablename__ = "comment_edits"
-    __table_args__ = (
-        Index("ix_comment_edits_comment_created", "comment_id", "created_at"),
-    )
-    id = db.Column(db.Integer, primary_key=True)
-    comment_id = db.Column(
+    author_id = db.Column(
         db.Integer,
-        db.ForeignKey("card_comments.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
-    editor_id = db.Column(
-        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), index=True
+    parent_id = db.Column(
+        db.Integer, ForeignKey("comments.id", ondelete="SET NULL"), nullable=True
     )
-    previous_body = db.Column(db.Text, nullable=False)
-    created_at = db.Column(
-        db.DateTime(timezone=True), server_default=db.func.now(), nullable=False
+    root_id = db.Column(
+        db.Integer, ForeignKey("comments.id", ondelete="SET NULL"), nullable=True
+    )
+    body = db.Column(Text, nullable=False)
+
+    card: Mapped["Card"] = relationship("Card", back_populates="comments")
+    author: Mapped["User"] = relationship("User", back_populates="comments")
+    parent: Mapped["Comment"] = relationship(
+        "Comment", remote_side="Comment.id", backref=backref("children", cascade="all")
+    )
+    root: Mapped["Comment"] = relationship("Comment", remote_side="Comment.id")
+
+    __table_args__ = (
+        CheckConstraint(
+            "parent_id IS NULL OR parent_id <> id", name="ck_comments_no_self_parent"
+        ),
+        Index(
+            "ix_comments_card_root_parent_created",
+            "card_id",
+            "root_id",
+            "parent_id",
+            "created_at",
+        ),
+        Index("ix_comments_card_created_desc", "card_id", text("created_at DESC")),
+        Index("ix_comments_updated_at", "updated_at"),
     )
