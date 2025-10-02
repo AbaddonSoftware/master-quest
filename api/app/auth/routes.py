@@ -1,7 +1,6 @@
-from flask import Blueprint, jsonify, make_response, redirect, request, session
+from flask import jsonify, make_response, redirect, request, session
 
 from . import auth_bp as bp
-from .errors import AuthError
 from .service import bootstrap, finish_login, start_login
 
 
@@ -19,13 +18,10 @@ def login_google():
 @bp.get("/google/callback")
 def callback_google():
     try:
-        user, _tokens, nxt = finish_login(request.args)
-        session["user"] = {
-            "provider": user.provider,
-            "sub": user.subject,
-            "email": user.email,
-            "name": user.name,
-        }
+        user, nxt = finish_login(request.args)
+        session.clear()
+        session["public_id"] = str(user.public_id)
+        # session.permanent = True
         return redirect(nxt, code=302)
     except Exception as e:
         return jsonify({"error": type(e).__name__, "message": str(e)}), 400
@@ -33,7 +29,7 @@ def callback_google():
 
 @bp.post("/logout")
 def logout():
-    session.pop("user", None)
+    session.pop("public_id", None)
     resp = make_response({"ok": True})
     resp.headers["Cache-Control"] = "no-store"
     return resp

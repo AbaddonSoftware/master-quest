@@ -1,34 +1,42 @@
 import os
-from typing import Optional
+from typing import Mapping, Optional
 
 from authlib.integrations.flask_client import OAuth
 from flask.wrappers import Response
 
 from .domain_types import Tokens, UserProfile
-from .oauth2_client import OAuth2Client
 
 
-class GoogleClient(OAuth2Client):
+class GoogleClient:
     name = "google"
+
+    @staticmethod
+    def _get_best_alias(info: Mapping[str, object]) -> str:
+        return info.get("name") or info.get("given_name") or "Guest" 
+
 
     def __init__(self, oauth: OAuth):
         self.client = oauth.register(
             name=self.name,
             server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-            client_id=os.environ["GOOGLE_CLIENT_ID"],
-            client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
-            client_kwargs={"scope": "openid email profile"},
+            client_id=os.getenv("GOOGLE_CLIENT_ID"),
+            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+            client_kwargs={
+                "scope": "openid email profile",
+                "code_challenge_method": "S256",
+            },
         )
 
-    def authorize_url(self, *, redirect_uri: str) -> Response:
+    def authorize_url(
+        self, *, redirect_uri: str, state: Optional[str] = None
+    ) -> Response:
+        if state:
+            return self.client.authorize_redirect(redirect_uri, state=state)
         return self.client.authorize_redirect(redirect_uri)
 
     def exchange_code(
-        self, *, code: str, redirect_uri: str, code_verifier: Optional[str]
-    ) -> Tokens:
-        token = self.client.fetch_access_token(
-            code=code, redirect_uri=redirect_uri, code_verifier=code_verifier
-        )
+        self) -> Tokens:
+        token = self.client.authorize_access_token()
         return Tokens(
             access_token=token.get("access_token"),
             refresh_token=token.get("refresh_token"),
@@ -38,34 +46,12 @@ class GoogleClient(OAuth2Client):
             raw=token,
         )
 
-    def fetch_user(self, tokens: Tokens) -> UserProfile:
-        info = self.client.userinfo(token=tokens.raw)
+    def fetch_userinfo(self) -> UserProfile:
+        info = self.client.userinfo()
         return UserProfile(
             provider=self.name,
-            subject=info.get("sub", ""),
+            subject=info.get("sub"),
             email=info.get("email"),
-            name=info.get("name") or info.get("given_name"),
+            name=self._get_best_alias(info),
             raw=info,
-        )
-
-    # Optional extras (Google supports both) They exist here for completeness but are not used
-    # in the current app implementation as we only use this for sign-in.
-    def refresh(self, refresh_token: str) -> Tokens:
-        token = self.client.refresh_token(
-            self.client.access_token_url, refresh_token=refresh_token
-        )
-        return Tokens(
-            access_token=token.get("access_token"),
-            refresh_token=token.get("refresh_token") or refresh_token,
-            id_token=token.get("id_token"),
-            token_type=token.get("token_type"),
-            expires_in=token.get("expires_in"),
-            raw=token,
-        )
-
-    def revoke(self, token: str, token_type_hint: str = "access_token") -> None:
-        self.client.revoke_token(
-            "https://oauth2.googleapis.com/revoke",
-            token,
-            token_type_hint=token_type_hint,
         )

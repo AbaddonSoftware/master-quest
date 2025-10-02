@@ -134,7 +134,6 @@ class SwimLane(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
 
     __table_args__ = (
         CheckConstraint("position >= 0", name="ck_lanes_position_nonneg"),
-        # ✅ make the referenced pair unique so (lane_id, board_id) can point to it
         UniqueConstraint("id", "board_id", name="uq_lanes_id_board"),
         Index(
             "uq_lanes_board_position_active",

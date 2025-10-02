@@ -1,6 +1,6 @@
-import base64
-import hashlib
-import secrets
+# import base64
+# import hashlib
+# import secrets
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -28,15 +28,15 @@ def sanitize_next_path(next_param: Optional[str], default: str = "/") -> str:
     return default
 
 
-def code_verifier() -> str:
-    v = secrets.token_urlsafe(48)
-    return v
+# def code_verifier() -> str:
+#     v = secrets.token_urlsafe(48)
+#     return v
 
 
-def code_challenge(verifier: str) -> str:
-    d = hashlib.sha256(verifier.encode("ascii")).digest()
-    return base64.urlsafe_b64encode(d).rstrip(b"=").decode("ascii")
+# def code_challenge(verifier: str) -> str:
+#     d = hashlib.sha256(verifier.encode("ascii")).digest()
+#     return base64.urlsafe_b64encode(d).rstrip(b"=").decode("ascii")
 
 
-def generate_state() -> str:
-    return secrets.token_urlsafe(32)
+# def generate_state() -> str:
+#     return secrets.token_urlsafe(32)

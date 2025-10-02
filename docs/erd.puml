@@ -1,5 +1,5 @@
 @startuml
-legend 
+legend top left
   * or {PK}      Primary Key
   {FK}           Foreign Key
   {U}            Unique
@@ -23,7 +23,7 @@ entity "users" as users {
   --
   user_name: VARCHAR(128)
   display_name: VARCHAR(128)
-  email: VARCHAR(255)? {U}
+  email: VARCHAR(320)? {U}
   first_name: VARCHAR(128)
   last_name: VARCHAR(128)
   terms_accepted_at: TIMESTAMPTZ

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import os
 from typing import Mapping, Optional, Tuple
 
@@ -6,7 +7,8 @@ from app.persistence.models import Identity, User
 from authlib.integrations.flask_client import OAuth
 from flask import session
 
-from .domain_types import Tokens, UserProfile
+
+from .domain_types import UserProfile
 from .google_client import GoogleClient
 from .oauth2_client import OAuth2Client
 from .utils import sanitize_next_path
@@ -33,23 +35,22 @@ def _upsert_user_identity(user: UserProfile) -> User:
         db.session.commit()
         return ident.user
 
-    u = User(
+    user_data = User(
         email=user.email,
         name=user.name,
+        last_login_at=datetime.now(timezone.utc)
     )
-    db.session.add(u)
+    db.session.add(user_data)
     db.session.flush()
 
-    i = Identity(
-        user_id=u.id,
+    identity_info = Identity(
+        user_id=user_data.id,
         provider=user.provider,
         subject=user.subject,
-        email_at_auth=user.email,
-        #    profile_json=user.raw,
     )
-    db.session.add(i)
+    db.session.add(identity_info)
     db.session.commit()
-    return u
+    return user_data
 
 
 def _base() -> str:
@@ -74,29 +75,10 @@ def start_login(*, next_path: str = "/"):
     return _client.authorize_url(redirect_uri=redirect_uri)
 
 
-def finish_login(params: Mapping[str, str]) -> Tuple[UserProfile, Tokens, str]:
+def finish_login(params: Mapping[str, str]) -> Tuple[UserProfile, str]:
     assert _oauth is not None, "call bootstrap(app) first"
-    oauth = _oauth
-
-    token = oauth.google.authorize_access_token()
-
-    tokens = Tokens(
-        access_token=token.get("access_token"),
-        refresh_token=token.get("refresh_token"),
-        id_token=token.get("id_token"),
-        token_type=token.get("token_type"),
-        expires_in=token.get("expires_in"),
-        raw=token,
-    )
-
-    info = oauth.google.userinfo()
-    user = UserProfile(
-        provider="google",
-        subject=info.get("sub", ""),
-        email=info.get("email"),
-        name=info.get("name") or info.get("given_name"),
-        raw=info,
-    )
-    _upsert_user_identity(user)
+    _client.exchange_code()
+    profile:UserProfile = _client.fetch_userinfo()
+    user = _upsert_user_identity(profile)
     next_path = session.pop("post_login_next", "/")
-    return user, tokens, next_path
+    return user, next_path

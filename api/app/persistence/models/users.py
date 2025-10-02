@@ -18,14 +18,11 @@ from ..orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __tablename__ = "users"
-
-    user_name = db.Column(String(128), nullable=False)
-    display_name = db.Column(String(128), nullable=True)
-    email = db.Column(CITEXT, nullable=True, index=True)
-    first_name = db.Column(String(128), nullable=True)
-    last_name = db.Column(String(128), nullable=True)
+    name = db.Column(String(128), nullable=False, unique=False)
+    preferred_name = db.Column(String(128), nullable=True, unique=True)
+    email = db.Column(CITEXT, index=True)
     terms_accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_login_at = db.Column(db.DateTime(timezone=True), nullable=False)
     is_guest = db.Column(
         db.Boolean, nullable=False, server_default=text("false"), index=True
     )
@@ -64,10 +61,10 @@ class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
             postgresql_where=email.isnot(None),
         ),
         Index(
-            "uq_users_user_name_lower",
-            func.lower(user_name),
-            unique=True,
-            postgresql_where=user_name.isnot(None),
+            "uq_users_name_lower",
+            func.lower(name),
+            unique=False,
+            postgresql_where=name.isnot(None),
         ),
         CheckConstraint(
             "(is_guest = false) OR (expires_at IS NOT NULL)",
