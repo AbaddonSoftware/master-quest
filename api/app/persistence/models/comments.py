@@ -7,7 +7,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, backref, relationship
 
-from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

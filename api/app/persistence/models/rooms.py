@@ -3,34 +3,36 @@ from __future__ import annotations
 from app.extensions import db
 from sqlalchemy import (
     Boolean,
+    DateTime,
+    Enum,
     CheckConstraint,
     ForeignKey,
     Index,
     String,
+    Integer,
     UniqueConstraint,
     func,
     text,
 )
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
-from .enums import Role, RoomKind
+from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
+from app.domain.security.permissions import RoomType, RoleType
 
 
 class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __tablename__ = "rooms"
 
-    owner_id = db.Column(
-        db.Integer,
+    owner_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
-    name = db.Column(String(128), nullable=False)
-    is_public = db.Column(Boolean, nullable=False, server_default=text("false"))
-    kind = db.Column(RoomKind, nullable=False, server_default=text("'normal'"))
-    expires_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
-    owner: Mapped["User"] = relationship("User", back_populates="rooms_owned")
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    room_type: Mapped[RoomType] = mapped_column(Enum(RoomType, name="room_type", create_constraint=True), nullable=False, server_default=RoomType.NORMAL)
+    expires_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    owner: Mapped["User"] = relationship("User", back_populates="ownerships")
     members: Mapped[list["RoomMember"]] = relationship(
         "RoomMember",
         back_populates="room",
@@ -47,37 +49,33 @@ class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("owner_id", "name", name="uq_rooms_owner_name"),
         Index(
-            "uq_rooms_owner_one_guest_active",  # name
-            "owner_id",  # column(s)
+            "uq_rooms_owner_one_guest_active",
+            "owner_id",
             unique=True,
-            postgresql_where=text("kind = 'guest'"),
+            postgresql_where=text("room_type = 'GUEST'"),
         ),
-        Index("ix_rooms_is_public", "is_public"),
         CheckConstraint(
-            "(kind <> 'guest') OR (expires_at IS NOT NULL)",
+            "(room_type <> 'GUEST') OR (expires_at IS NOT NULL)",
             name="ck_rooms_guest_requires_expires_at",
         ),
         Index(
             "ix_rooms_expiring_active",
             "expires_at",
-            postgresql_where=text("kind = 'guest'"),
+            postgresql_where=text("room_type = 'GUEST'"),
         ),
     )
 
 
-class RoomMember(db.Model):
+class RoomMember(db.Model, TimestampMixin):
     __tablename__ = "room_members"
 
-    room_id = db.Column(
+    room_id: Mapped[int] = mapped_column(
         db.Integer, ForeignKey("rooms.id", ondelete="CASCADE"), primary_key=True
     )
-    user_id = db.Column(
+    user_id: Mapped[int] = mapped_column(
         db.Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    role = db.Column(Role, nullable=False, server_default=text("'member'"))
-    joined_at = db.Column(
-        db.DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    role: Mapped[Enum] = db.Column(Enum(RoleType, name="role_type", create_constraint=True), nullable=False, server_default=RoleType.MEMBER)
 
     room: Mapped["Room"] = relationship("Room", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="memberships")

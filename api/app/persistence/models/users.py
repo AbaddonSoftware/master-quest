@@ -13,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, relationship
 
-from ..orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
+from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
@@ -33,7 +33,7 @@ class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    rooms_owned: Mapped[list["Room"]] = relationship(
+    ownerships: Mapped[list["Room"]] = relationship(
         "Room",
         back_populates="owner",
         cascade="save-update, merge",
@@ -45,12 +45,12 @@ class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         cascade="save-update, merge",
         passive_deletes=True,
     )
-    comments: Mapped[list["Comment"]] = relationship(
-        "Comment",
-        back_populates="author",
-        cascade="save-update, merge",
-        passive_deletes=True,
-    )
+    # # comments: Mapped[list["Comment"]] = relationship(
+    #     "Comment",
+    #     back_populates="author",
+    #     cascade="save-update, merge",
+    #     passive_deletes=True,
+    # )
 
     __table_args__ = (
         CheckConstraint("length(email) <= 320", name="ck_users_email_length"),

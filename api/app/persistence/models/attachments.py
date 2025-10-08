@@ -4,8 +4,7 @@ from app.extensions import db
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, relationship
 
-from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
-from .enums import AttachmentKind
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class CardAttachment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
@@ -17,11 +16,11 @@ class CardAttachment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
         nullable=False,
         index=True,
     )
-    kind = db.Column(AttachmentKind, nullable=False)
+    kind = db.Column(String(255), nullable=False)
     title = db.Column(String(255), nullable=True)
-    url = db.Column(Text, nullable=True)  # for 'link'
-    path = db.Column(Text, nullable=True)  # for 'file'
-    twee = db.Column(Text, nullable=True)  # for 'twee'
+    url = db.Column(Text, nullable=True) 
+    path = db.Column(Text, nullable=True)  
+    twee = db.Column(Text, nullable=True)  
     content_type = db.Column(String(255), nullable=True)
     size_bytes = db.Column(db.Integer, nullable=True)
 

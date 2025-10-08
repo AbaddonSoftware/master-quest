@@ -14,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, backref, relationship
 
-from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Card(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
@@ -26,15 +26,11 @@ class Card(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
         nullable=False,
         index=True,
     )
-    column_id = db.Column(db.Integer, nullable=False)  # composite FK below
-    lane_id = db.Column(db.Integer, nullable=True)  # composite FK below
+    column_id = db.Column(db.Integer, nullable=True, index=True)  # composite FK below
+    lane_id = db.Column(db.Integer, nullable=True, index=True)  # composite FK below
     title = db.Column(String(255), nullable=False)
     description = db.Column(Text, nullable=True)
     position = db.Column(db.Integer, nullable=False, server_default=text("0"))
-
-    board: Mapped["Board"] = relationship("Board", back_populates="cards")
-    column: Mapped["BoardColumn"] = relationship("BoardColumn")
-    lane: Mapped["SwimLane"] = relationship("SwimLane")
     assignees: Mapped[list["User"]] = relationship(
         "User",
         secondary="card_assignments",

@@ -8,7 +8,7 @@ class SoftDeleteQuery(Query):
     _with_deleted = False
 
     def with_deleted(self):
-        q = self.enable_assertions(False)
+        q = self.clone()
         q._with_deleted = True
         return q
 
@@ -16,22 +16,20 @@ class SoftDeleteQuery(Query):
         return self.with_deleted().filter(self._deleted_filter(only=True))
 
     def _deleted_filter(self, only: bool = False):
-        crits = []
-        for ent in self._entities:
-            mapper = getattr(ent, "mapper", None)
-            if not mapper:
-                continue
+        filters = []
+        for entity in self._entities:
+            mapper = getattr(entity, "mapper", None)
             cls = mapper.class_
-            col = getattr(cls, "deleted_at", None)
-            if col is not None:
-                crits.append(col.isnot(None) if only else col.is_(None))
-        if not crits:
+            column = getattr(cls, "deleted_at", None)
+            if column is not None:
+                filters.append(column.isnot(None) if only else column.is_(None))
+        if not filters:
             return None
-        return and_(*crits)
+        return and_(*filters)
 
     def __iter__(self):
         if not getattr(self, "_with_deleted", False):
-            crit = self._deleted_filter()
-            if crit is not None:
-                self = self.filter(crit)
+            deleted_filter = self._deleted_filter()
+            if deleted_filter is not None:
+                self = self.filter(deleted_filter)
         return super().__iter__()

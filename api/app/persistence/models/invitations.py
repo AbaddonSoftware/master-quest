@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, relationship
 
-from ..orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Invitation(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

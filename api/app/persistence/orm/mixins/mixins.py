@@ -19,7 +19,6 @@ class PublicIdMixin:
         default=uuid.uuid4,
         unique=True,
         nullable=False,
-        index=True,
     )
 
 
