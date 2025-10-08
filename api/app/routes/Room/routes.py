@@ -1,6 +1,3 @@
-from flask import request, g, abort, jsonify
-from . import room_bp
-from .services import create_room
 from app.domain.security.permissions import RoomType
 from app.domain.validators import (
     get_authenticated_user_id,
@@ -8,6 +5,10 @@ from app.domain.validators import (
     validate_enum,
     validate_str_length,
 )
+from flask import abort, g, jsonify, request
+
+from . import room_bp
+from .services import create_room
 
 
 @room_bp.post("")

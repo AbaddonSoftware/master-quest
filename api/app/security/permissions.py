@@ -1,5 +1,5 @@
-from typing import Mapping, FrozenSet
 from enum import StrEnum
+from typing import FrozenSet, Mapping
 
 
 class Permission(StrEnum):
@@ -23,11 +23,10 @@ class RoleType(StrEnum):
     MEMBER = "MEMBER"
     VIEWER = "VIEWER"
 
-    
+
 class RoomType(StrEnum):
     NORMAL = "NORMAL"
     GUEST = "GUEST"
-
 
 
 ROLE_DEFAULTS: Mapping[RoleType, FrozenSet[Permission]] = {

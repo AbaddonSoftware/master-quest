@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.extensions import db
+from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
@@ -12,8 +13,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, relationship
-
-from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):

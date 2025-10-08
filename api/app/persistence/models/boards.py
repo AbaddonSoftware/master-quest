@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from app.extensions import db
+from app.persistence.orm.mixins import (
+    DeletedAtMixin,
+    PublicIdMixin,
+    SurrogatePK,
+    TimestampMixin,
+)
 from sqlalchemy import (
-    and_,
     CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
-    String,
     Integer,
+    String,
     UniqueConstraint,
+    and_,
     text,
 )
-from sqlalchemy.orm import Mapped, backref, mapped_column, relationship, foreign
-from typing import Optional
-from app.persistence.orm.mixins import DeletedAtMixin, PublicIdMixin, SurrogatePK, TimestampMixin
+from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship
 
 
 class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
@@ -30,10 +36,10 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
     room: Mapped["Room"] = relationship("Room", back_populates="boards")
     # columns: Mapped[list["BoardColumn"]] = relationship(
     #     "BoardColumn",
-    #     back_populates="board",     
+    #     back_populates="board",
     #     cascade="all, delete-orphan",
     #     passive_deletes=True,
-    #     order_by="BoardColumn.position", 
+    #     order_by="BoardColumn.position",
     # )
 
     # lanes: Mapped[list["SwimLane"]] = relationship(

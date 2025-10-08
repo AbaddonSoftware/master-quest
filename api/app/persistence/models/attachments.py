@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from app.extensions import db
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, relationship
-
-from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class CardAttachment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
@@ -18,9 +17,9 @@ class CardAttachment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     )
     kind = db.Column(String(255), nullable=False)
     title = db.Column(String(255), nullable=True)
-    url = db.Column(Text, nullable=True) 
-    path = db.Column(Text, nullable=True)  
-    twee = db.Column(Text, nullable=True)  
+    url = db.Column(Text, nullable=True)
+    path = db.Column(Text, nullable=True)
+    twee = db.Column(Text, nullable=True)
     content_type = db.Column(String(255), nullable=True)
     size_bytes = db.Column(db.Integer, nullable=True)
 

@@ -12,8 +12,7 @@ class GoogleClient:
 
     @staticmethod
     def _get_best_alias(info: Mapping[str, object]) -> str:
-        return info.get("name") or info.get("given_name") or "Guest" 
-
+        return info.get("name") or info.get("given_name") or "Guest"
 
     def __init__(self, oauth: OAuth):
         self.client = oauth.register(
@@ -34,8 +33,7 @@ class GoogleClient:
             return self.client.authorize_redirect(redirect_uri, state=state)
         return self.client.authorize_redirect(redirect_uri)
 
-    def exchange_code(
-        self) -> Tokens:
+    def exchange_code(self) -> Tokens:
         token = self.client.authorize_access_token()
         return Tokens(
             access_token=token.get("access_token"),

@@ -1,23 +1,33 @@
 from __future__ import annotations
 
 from app.extensions import db
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 from sqlalchemy import (
-    Column, Integer, Text, ForeignKey, ForeignKeyConstraint,
-    UniqueConstraint, CheckConstraint, Index, text
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    Text,
+    UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, backref, relationship
-
-from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     __tablename__ = "comments"
 
-    card_id   = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True)
-    author_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    card_id = Column(
+        Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    author_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     parent_id = Column(Integer, nullable=True, index=True)
-    root_id   = Column(Integer, nullable=True, index=True)
+    root_id = Column(Integer, nullable=True, index=True)
 
     body = Column(Text, nullable=False)
 
@@ -39,12 +49,11 @@ class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     )
 
     author = relationship("User", back_populates="comments", foreign_keys=[author_id])
-    card   = relationship("Card", back_populates="comments", foreign_keys=[card_id])
+    card = relationship("Card", back_populates="comments", foreign_keys=[card_id])
 
     __table_args__ = (
         # Ensure (id, card_id) can be referenced together
         UniqueConstraint("id", "card_id", name="uq_comments_id_card"),
-
         # Parent must be on same card
         ForeignKeyConstraint(
             ["parent_id", "card_id"],
@@ -59,14 +68,20 @@ class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
             name="fk_comments_root_same_card",
             ondelete="SET NULL",
         ),
-
-        CheckConstraint("parent_id IS NULL OR parent_id <> id", name="ck_comments_no_self_parent"),
+        CheckConstraint(
+            "parent_id IS NULL OR parent_id <> id", name="ck_comments_no_self_parent"
+        ),
         CheckConstraint(
             "(parent_id IS NULL AND root_id = id) OR (parent_id IS NOT NULL AND root_id IS NOT NULL)",
-            name="ck_comments_root_invariant"
+            name="ck_comments_root_invariant",
         ),
-
-        Index("ix_comments_card_root_parent_created", "card_id", "root_id", "parent_id", "created_at"),
+        Index(
+            "ix_comments_card_root_parent_created",
+            "card_id",
+            "root_id",
+            "parent_id",
+            "created_at",
+        ),
         Index("ix_comments_card_created_desc", "card_id", text("created_at DESC")),
         Index("ix_comments_updated_at", "updated_at"),
     )

@@ -1,12 +1,11 @@
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 from typing import Mapping, Optional, Tuple
 
 from app.extensions import db
 from app.persistence.models import Identity, User
 from authlib.integrations.flask_client import OAuth
 from flask import session
-
 
 from .domain_types import UserProfile
 from .google_client import GoogleClient
@@ -36,9 +35,7 @@ def _upsert_user_identity(user: UserProfile) -> User:
         return ident.user
 
     user_data = User(
-        email=user.email,
-        name=user.name,
-        last_login_at=datetime.now(timezone.utc)
+        email=user.email, name=user.name, last_login_at=datetime.now(timezone.utc)
     )
     db.session.add(user_data)
     db.session.flush()
@@ -78,7 +75,7 @@ def start_login(*, next_path: str = "/"):
 def finish_login(params: Mapping[str, str]) -> Tuple[UserProfile, str]:
     assert _oauth is not None, "call bootstrap(app) first"
     _client.exchange_code()
-    profile:UserProfile = _client.fetch_userinfo()
+    profile: UserProfile = _client.fetch_userinfo()
     user = _upsert_user_identity(profile)
     next_path = session.pop("post_login_next", "/")
     return user, next_path

@@ -1,23 +1,22 @@
 from __future__ import annotations
 
+from app.domain.security.permissions import RoleType, RoomType
 from app.extensions import db
+from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
-    CheckConstraint,
     ForeignKey,
     Index,
-    String,
     Integer,
+    String,
     UniqueConstraint,
     func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
-from app.domain.security.permissions import RoomType, RoleType
 
 
 class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
@@ -30,8 +29,14 @@ class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    room_type: Mapped[RoomType] = mapped_column(Enum(RoomType, name="room_type", create_constraint=True), nullable=False, server_default=RoomType.NORMAL)
-    expires_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    room_type: Mapped[RoomType] = mapped_column(
+        Enum(RoomType, name="room_type", create_constraint=True),
+        nullable=False,
+        server_default=RoomType.NORMAL,
+    )
+    expires_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     owner: Mapped["User"] = relationship("User", back_populates="ownerships")
     members: Mapped[list["RoomMember"]] = relationship(
         "RoomMember",
@@ -75,7 +80,11 @@ class RoomMember(db.Model, TimestampMixin):
     user_id: Mapped[int] = mapped_column(
         db.Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    role: Mapped[Enum] = db.Column(Enum(RoleType, name="role_type", create_constraint=True), nullable=False, server_default=RoleType.MEMBER)
+    role: Mapped[Enum] = db.Column(
+        Enum(RoleType, name="role_type", create_constraint=True),
+        nullable=False,
+        server_default=RoleType.MEMBER,
+    )
 
     room: Mapped["Room"] = relationship("Room", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="memberships")

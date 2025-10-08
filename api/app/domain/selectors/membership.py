@@ -1,9 +1,10 @@
 from typing import Optional
-from flask import g, abort
-from sqlalchemy import select
+
+from app.domain.validators import get_authenticated_user_id
 from app.extensions import db
 from app.persistence.models import Room, RoomMember
-from app.domain.validators import get_authenticated_user_id
+from flask import abort, g
+from sqlalchemy import select
 
 
 def get_role_in_room(room_public_id: str) -> Optional[Role]:

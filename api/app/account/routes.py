@@ -1,4 +1,4 @@
-from flask import make_response, g
+from flask import g, make_response
 
 from . import account_bp as bp
 

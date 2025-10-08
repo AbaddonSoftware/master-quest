@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.extensions import db
+from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
@@ -13,8 +14,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, backref, relationship
-
-from app.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Card(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
