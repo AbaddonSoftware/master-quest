@@ -15,6 +15,9 @@ build/
 venv/
 env/
 
+# Tests
+api/tests/
+
 # === Dev Containers ===
 .devcontainer/.history/
 .devcontainer/*.log

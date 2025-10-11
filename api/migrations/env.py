@@ -13,11 +13,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import app.persistence.models
-
+import src.persistence.models
 # Import Flask app + db for metadata
-from app import create_app
-from app.extensions import db
+from src import create_app
+from src.extensions import db
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:

@@ -9,8 +9,8 @@ description = "A kanban board that lets you attach interactive stories to kanban
 authors = [
   { name = "Donnie Baker" }
 ]
-readme = "README.md"
-license = { file = "LICENSE" }
+# readme = { file = "README.md", content-type = "text/markdown" }
+# license = { file = "LICENSE" }
 requires-python = ">=3.10"
 
 dependencies = [
@@ -53,3 +53,6 @@ extend-ignore = [
   "E203",  # whitespace before ':' (conflicts with Black)
   "W503",  # line break before binary operator (conflicts with Black)
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
