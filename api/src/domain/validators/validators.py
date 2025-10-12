@@ -1,11 +1,19 @@
 from enum import Enum
-
 from flask import abort, g
+from typing import Callable
 
 
-def _require_field(field: str | int | bool, field_name: str):
-    if field is None:
+def _must_exist_(field: str|int|bool|None, field_name: str):
+    if field == None:
         abort(400, f"'{field_name}' must be specified.")
+
+def _must_not_be_empty_str(field: str|int|bool|None, field_name: str):
+    if field == "":
+        abort(400, f"'{field_name}' must not be an empty string.")
+
+def _require_field(field, field_name):
+    _must_exist_(field, field_name)
+    _must_not_be_empty_str(field, field_name)
 
 
 def validate_string_field(
@@ -13,12 +21,12 @@ def validate_string_field(
 ) -> str | None:
     if required:
         _require_field(field, field_name)
-    if field is None:
+    elif field == None:
         return None
-    isinstance(field, str) or abort(400, f"'{field_name}' must be a string.")
-    field = field.strip()
-    return field
-
+    if not isinstance(field, str):
+        abort(400, f"'{field_name}' must be a non-empty string")
+    return field.strip()
+    
 
 def validate_int_field(
     field: int | None, field_name: str, required: bool = True
@@ -27,25 +35,27 @@ def validate_int_field(
         _require_field(field, field_name)
     if field is None:
         return None
-    isinstance(field, int) or abort(400, f"'{field_name}' must be an integer.")
+    if type(field) is not int:
+        abort(400, f"'{field_name}' must be an integer.")
     return field
 
 
 def get_authenticated_user_id() -> int:
     user = getattr(g, "user", None)
-    has_user_id = user and user.id is not None
-    has_user_id or abort(401, "No user found, login to use this API.")
-    return user.id
+    if user is not None and getattr(user, "id", None) is not None:
+        return user.id
+    abort(401, "No user found, login to use this api.")
 
 
 def validate_string_length(
-    input_string: str, min_len: int, max_len: int, field_name: str
+    field: str, min_len: int, max_len: int, field_name: str
 ):
-    length_of_value = len(input_string)
+    length_of_value = len(field)
     is_str_bounded = min_len <= length_of_value <= max_len
     is_str_bounded or abort(
         400, f"'{field_name}' must be between {min_len} and {max_len}"
     )
+    return field
 
 
 def validate_in_enum(

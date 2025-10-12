@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_blueprints(app: Flask) -> None:
-    from .account import account_bp
+    from .user import account_bp
     from .auth import auth_bp
     from .healthz import bp as health_bp
     from .routes import api_bp
