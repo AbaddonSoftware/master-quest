@@ -1,38 +1,30 @@
 from enum import Enum
 from flask import abort, g
-from typing import Callable
 
 
-def _must_exist_(field: str|int|bool|None, field_name: str):
-    if field == None:
+def validate_field_exists(field: str, field_name: str, required: bool = True):
+    if required is True and field is None:
         abort(400, f"'{field_name}' must be specified.")
+    return field
 
-def _must_not_be_empty_str(field: str|int|bool|None, field_name: str):
-    if field == "":
-        abort(400, f"'{field_name}' must not be an empty string.")
-
-def _require_field(field, field_name):
-    if field == None:
-        abort(400, f"'{field_name}' must be specified.")
-
+def _require_field(field: str, field_name: str, required: bool = True):
+    validate_field_exists(field, field_name, required)
 
 def validate_string_field(
     field: str | None, field_name: str, required: bool = True
 ) -> str | None:
-    if required:
-        _require_field(field, field_name)
-    elif field == None:
+    _require_field(field, field_name, required)
+    if field is None:
         return None
-    if not isinstance(field, str) or field == "":
-        abort(400, f"'{field_name}' must be a non-empty string")
-    return field.strip()
-    
+    if type(field) is str and field != "":
+        return field.strip()
+    abort(400, f"'{field_name}' must be a non-empty string")
+
 
 def validate_int_field(
     field: int | None, field_name: str, required: bool = True
 ) -> int | None:
-    if required:
-        _require_field(field, field_name)
+    _require_field(field, field_name, required)
     if field is None:
         return None
     if type(field) is not int:
@@ -50,11 +42,8 @@ def get_authenticated_user_id() -> int:
 def validate_string_length(
     field: str, min_len: int, max_len: int, field_name: str
 ):
-    length_of_value = len(field)
-    is_str_bounded = min_len <= length_of_value <= max_len
-    is_str_bounded or abort(
-        400, f"'{field_name}' must be between {min_len} and {max_len}"
-    )
+    if not (min_len <= len(field) <= max_len):
+        abort(400, f"'{field_name}' must be between {min_len} and {max_len}")
     return field
 
 
