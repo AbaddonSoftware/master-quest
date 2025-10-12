@@ -12,8 +12,8 @@ def _must_not_be_empty_str(field: str|int|bool|None, field_name: str):
         abort(400, f"'{field_name}' must not be an empty string.")
 
 def _require_field(field, field_name):
-    _must_exist_(field, field_name)
-    _must_not_be_empty_str(field, field_name)
+    if field == None:
+        abort(400, f"'{field_name}' must be specified.")
 
 
 def validate_string_field(
@@ -23,7 +23,7 @@ def validate_string_field(
         _require_field(field, field_name)
     elif field == None:
         return None
-    if not isinstance(field, str):
+    if not isinstance(field, str) or field == "":
         abort(400, f"'{field_name}' must be a non-empty string")
     return field.strip()
     

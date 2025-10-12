@@ -35,12 +35,6 @@ def test_require_field_aborts_400_on_None():
     assert e.value.code == 400
 
 
-def test_require_field_aborts_400_on_empty_string():
-    with pytest.raises(HTTPException) as e:
-        _require_field("", "field_name")
-    assert e.value.code == 400
-
-
 def test_require_field_allows_zero():
     result = _require_field(0, "field_name")
     assert result == None
@@ -68,6 +62,11 @@ def test_validate_string_field_returns_string_on_success():
 def test_validate_string_field_optional_none_returns_none():
     result = validate_string_field(None, "field_name", required=False)
     assert result == None
+
+def test_validate_string_field_option_empty_aborts():
+    with pytest.raises(HTTPException) as e:
+        validate_string_field("", "field_name", required=False)
+    assert e.value.code == 400
 
 
 def test_validate_string_field_returns_stripped_on_success():
