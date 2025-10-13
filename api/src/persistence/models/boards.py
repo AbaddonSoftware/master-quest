@@ -2,13 +2,25 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import (CheckConstraint, ForeignKey, ForeignKeyConstraint,
-                        Index, Integer, String, UniqueConstraint, and_, text)
-from sqlalchemy.orm import (Mapped, backref, foreign, mapped_column,
-                            relationship)
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    and_,
+    text,
+)
+from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship
 from src.extensions import db
-from src.persistence.orm.mixins import (DeletedAtMixin, PublicIdMixin,
-                                        SurrogatePK, TimestampMixin)
+from src.persistence.orm.mixins import (
+    DeletedAtMixin,
+    PublicIdMixin,
+    SurrogatePK,
+    TimestampMixin,
+)
 
 
 class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
@@ -19,7 +31,7 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
         nullable=False,
         index=True,
     )
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
     room: Mapped["Room"] = relationship("Room", back_populates="boards")
     columns: Mapped[list["BoardColumn"]] = relationship(
         "BoardColumn",

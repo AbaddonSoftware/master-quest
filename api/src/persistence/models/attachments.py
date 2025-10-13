@@ -3,8 +3,7 @@ from __future__ import annotations
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, relationship
 from src.extensions import db
-from src.persistence.orm.mixins import (DeletedAtMixin, SurrogatePK,
-                                        TimestampMixin)
+from src.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class CardAttachment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

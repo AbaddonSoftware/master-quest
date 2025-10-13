@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from sqlalchemy import (CheckConstraint, ForeignKey, Index, String,
-                        UniqueConstraint, func, text)
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, relationship
 from src.extensions import db
-from src.persistence.orm.mixins import (DeletedAtMixin, SurrogatePK,
-                                        TimestampMixin)
+from src.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Invitation(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

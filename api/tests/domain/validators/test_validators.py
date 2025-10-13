@@ -1,14 +1,9 @@
 import types
+
 import pytest
+from domain.validators import validate_int, validate_str, validate_user_logged_in
 from flask import Flask, g
 from werkzeug.exceptions import HTTPException
-
-from domain.validators import (
-    validate_int_field,
-    validate_string_field,
-    validate_string_length,
-)
-from domain.validators.validators import _require_field
 
 # ---------- Helpers / Fixtures ----------
 
@@ -26,105 +21,94 @@ def req_ctx(app):
         yield
 
 
-# ---------- _require_field ----------
+# --- validate_str ---
 
 
-def test_require_field_aborts_400_on_None():
+def test_validate_str_return_string_on_success_required():
+    result = validate_str("field", "field_name", required=True)
+    assert result == "field"
+
+
+def test_validate_str_return_string_on_success_optional():
+    result = validate_str("a_valid_field", "field_name", required=False)
+    assert result == "a_valid_field"
+
+
+def test_validate_str_aborts_on_nonstring_if_required():
     with pytest.raises(HTTPException) as e:
-        _require_field(None, "field_name")
+        validate_str(0, "field_name", required=True)
     assert e.value.code == 400
 
 
-def test_require_field_allows_zero():
-    result = _require_field(0, "field_name")
-    assert result == None
+def test_validate_str_passes_none_if_optional():
+    result = validate_str(None, "field_name", required=False)
+    assert result is None
 
 
-def test_require_field_allows_false():
-    result = _require_field(False, "field_name")
-    assert result == None
+def test_validate_str_strips_string_on_success_required():
+    result = validate_str("  field   ", "field_name", required=True)
+    assert result == "field"
 
 
-# ---------- validate_string_field ----------
+def test_validate_str_strips_string_on_success_optional():
+    result = validate_str("   field  ", "field_name", required=False)
+    assert result == "field"
 
 
-def test_validate_string_field_required_none_aborts():
+def test_validate_str_aborts_empty_string_required():
     with pytest.raises(HTTPException) as e:
-        validate_string_field(None, "field_name", required=True)
+        validate_str("", "field_name", required=True)
     assert e.value.code == 400
 
 
-def test_validate_string_field_returns_string_on_success():
-    result = validate_string_field("Field", "field_name", required=True)
-    assert result == "Field"
-
-
-def test_validate_string_field_optional_none_returns_none():
-    result = validate_string_field(None, "field_name", required=False)
-    assert result == None
-
-def test_validate_string_field_option_empty_aborts():
+def test_validate_str_aborts_empty_string_optional():
     with pytest.raises(HTTPException) as e:
-        validate_string_field("", "field_name", required=False)
+        validate_str("", "field_name", required=False)
     assert e.value.code == 400
 
 
-def test_validate_string_field_returns_stripped_on_success():
-    result = validate_string_field(" Field  ", "field_name")
-    assert result == "Field"
+def test_validate_str_aborts_onlyspace_string_required():
+    with pytest.raises(HTTPException) as e:
+        validate_str("      ", "field_name", required=True)
+    assert e.value.code == 400
 
 
-# ---------- validate_int_field ----------
+def test_validate_str_aborts_onlywhitespace_string_optional():
+    with pytest.raises(HTTPException) as e:
+        validate_str("      ", "field_name", required=False)
+    assert e.value.code == 400
+
+
+# --- validate_int ---
 
 
 def test_validate_int_field_required_none_aborts():
     with pytest.raises(HTTPException) as e:
-        validate_int_field(None, "field_name", required=True)
+        validate_int(None, "field_name", required=True)
     assert e.value.code == 400
 
 
 def test_validate_int_field_required_returns_value_on_success():
-    result = validate_int_field(42, "field_name", required=True)
+    result = validate_int(42, "field_name", required=True)
     assert result == 42
 
 
 def test_validate_int_field_optional_none_returns_none():
-    result = validate_int_field(None, "field_name", required=False)
+    result = validate_int(None, "field_name", required=False)
     assert result == None
 
 
 def test_validate_int_field_optional_int_returns_int():
-    result = validate_int_field(5, "field_name", required=False)
+    result = validate_int(5, "field_name", required=False)
     assert result == 5
 
 
-# ---------- get_authenticated_user_id ----------
+# --- validate_user_logged_in ---
 
 
-def test_get_authenticated_user_id_returns_id(req_ctx):
+def test_validated_user_logged_in_returns_id(req_ctx):
     g.user = types.SimpleNamespace(id=7, name="Alice")
-    from api.src.domain.validators import (  # re-import inside context
-        get_authenticated_user_id,
-    )
-    result = get_authenticated_user_id()
+    from api.src.domain.validators import validate_user_logged_in
+
+    result = validate_user_logged_in()
     assert result == 7
-
-
-# # ---------- validate_string_length ----------
-
-
-def test_validate_string_length_within_bounds_passes():
-    result = validate_string_length("field", 1, 10, "field_name")
-    assert result is "field"
-
-
-def test_validate_string_length_too_short_aborts():
-    with pytest.raises(HTTPException) as e:
-        validate_string_length("fi", 3, 10, "field_name")
-    assert e.value.code == 400
-
-
-def test_validate_string_length_too_long_aborts():
-    with pytest.raises(HTTPException) as e:
-        validate_string_length("x" * 11, 1, 10, "field_name")
-    assert e.value.code == 400

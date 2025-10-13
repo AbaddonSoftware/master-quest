@@ -14,6 +14,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 import src.persistence.models
+
 # Import Flask app + db for metadata
 from src import create_app
 from src.extensions import db

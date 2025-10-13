@@ -1,5 +1,6 @@
 # from .attachments import CardAttachment
 from .boards import Board, BoardColumn
+
 # from BoardColumn, SwimLane
 # from .cards import Card, CardAssignment
 # from .comments import Comment

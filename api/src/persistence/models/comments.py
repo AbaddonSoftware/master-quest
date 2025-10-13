@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-from sqlalchemy import (CheckConstraint, Column, ForeignKey,
-                        ForeignKeyConstraint, Index, Integer, Text,
-                        UniqueConstraint, text)
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, backref, relationship
 from src.extensions import db
-from src.persistence.orm.mixins import (DeletedAtMixin, SurrogatePK,
-                                        TimestampMixin)
+from src.persistence.orm.mixins import DeletedAtMixin, SurrogatePK, TimestampMixin
 
 
 class Comment(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

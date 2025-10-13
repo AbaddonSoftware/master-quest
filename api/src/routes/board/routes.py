@@ -1,13 +1,11 @@
 from flask import abort, g, jsonify, request
 from src.domain.decorators.decorator import require_permission
 from src.domain.security.permissions import Permission
-from src.domain.validators import (validate_int_field, validate_string_field,
-                                   validate_string_length)
+from src.domain.validators import validate_in_enum, validate_int, validate_str
 from src.persistence.models import Board
 
 from . import board_bp
-from .services import (create_board, create_board_column, soft_delete_board,
-                       view_board)
+from .services import create_board, create_board_column, soft_delete_board, view_board
 
 
 @board_bp.post("")
@@ -16,11 +14,10 @@ def create_board_route():
     data = request.get_json(silent=True) or {}
 
     field = "name"
-    name = validate_string_field(data.get(field), field)
-    validate_string_length(name, 3, 30, field)
+    name = validate_str(data.get(field), field, min_len=3, max_len=30)
 
     field = "room_id"
-    room_id = validate_int_field(data.get(field), field)
+    room_id = validate_int(data.get(field), field)
 
     new_board = create_board(room_id=room_id, name=name)
 
@@ -55,4 +52,3 @@ def create_board_column_route(board_public_id: str):
     create_board_column(
         board_public_id, title, wip_limit, column_type
     )  # , title: str, wip_limit:int, column_type:str)
-    pass

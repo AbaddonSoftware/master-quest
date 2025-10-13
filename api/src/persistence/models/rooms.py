@@ -1,12 +1,22 @@
 from __future__ import annotations
 
-from sqlalchemy import (Boolean, CheckConstraint, DateTime, Enum, ForeignKey,
-                        Index, Integer, String, UniqueConstraint, func, text)
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.domain.security.permissions import RoleType, RoomType
 from src.extensions import db
-from src.persistence.orm.mixins import (PublicIdMixin, SurrogatePK,
-                                        TimestampMixin)
+from src.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
