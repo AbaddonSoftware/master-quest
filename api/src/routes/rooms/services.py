@@ -3,11 +3,12 @@ from src.extensions import db
 from src.persistence.models import Room, RoomMember
 
 
-def create_room(*, creator_user_id: int, name: str, room_type: RoomType) -> Room:
+def create_room(
+    *, creator_user_id: int, name: str, room_type: RoomType = "Normal"
+) -> Room:
     room = Room(
         owner_id=creator_user_id,
         name=name.strip(),
-        room_type=room_type,
     )
     db.session.add(room)
     db.session.flush()
@@ -20,6 +21,11 @@ def create_room(*, creator_user_id: int, name: str, room_type: RoomType) -> Room
         )
     )
     db.session.commit()
+    return room
+
+
+def view_room(room_public_id):
+    room = Room.query.filter_by(public_id=room_public_id).first()
     return room
 
 

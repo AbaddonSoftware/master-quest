@@ -8,23 +8,27 @@ from src.domain.validators import (
 )
 
 from . import room_bp
-from .services import create_room, view_rooms
+from .services import create_room, view_room, view_rooms
 
 
 @room_bp.post("")
 def create_room_route():
     id = validate_user_logged_in()
-
     data = request.get_json(silent=True) or {}
-
     field = "name"
     name = validate_str(data.get(field), field, min_len=3, max_len=30)
+    new_room = create_room(creator_user_id=id, name=name)
+    return jsonify({"public_id": new_room.public_id, "name": new_room.name}), 201
 
-    field = "room_type"
-    room_type = validate_in_enum(data.get(field), RoomType, field)
 
-    new_room = create_room(creator_user_id=id, name=name, room_type=room_type)
-    return jsonify({"room_id": new_room.public_id}), 201
+@room_bp.get("/<string:room_public_id>")
+def view_room_by_public_id(room_public_id: str):
+    room = view_room(room_public_id)
+    room_data = {
+        "public_id": room.public_id,
+        "name": room.name,
+    }
+    return jsonify(room_data), 200
 
 
 @room_bp.get("")

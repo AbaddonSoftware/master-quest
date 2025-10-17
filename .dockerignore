@@ -1,0 +1,12 @@
+.git
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+node_modules
+api/.venv
+api/.mypy_cache
+api/.pytest_cache
+web/node_modules
+web/dist
+docker-compose*.yml
+README.md

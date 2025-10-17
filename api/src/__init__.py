@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 def register_blueprints(app: Flask) -> None:
-    from .auth import auth_bp
     from .healthz import bp as health_bp
     from .routes import api_bp
-    from .routes.user import account_bp
+    from .routes.auth import auth_bp
+    from .routes.users import account_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -31,7 +31,7 @@ def register_blueprints(app: Flask) -> None:
 
 
 def register_request_hook(app: Flask) -> None:
-    from .auth import load_current_user
+    from .routes.auth import load_current_user
 
     @app.before_request
     def _attach_user():

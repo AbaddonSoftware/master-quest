@@ -132,16 +132,3 @@ class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
 #     __table_args__ = (
 #         # CheckConstraint("position >= 0", name="ck_lanes_position_nonneg"),
 #         # UniqueConstraint("id", "board_id", name="uq_lanes_id_board"),
-#         # Index(
-#         #     "uq_lanes_board_position_active",
-#         #     "board_id",
-#         #     "position",
-#         #     unique=True,
-#         #     postgresql_where=text("deleted_at IS NULL"),
-#         # ),
-#         # Index(
-#         #     "ix_lanes_board_active",
-#         #     "board_id",
-#         #     postgresql_where=text("deleted_at IS NULL"),
-#         # ),
-#     )

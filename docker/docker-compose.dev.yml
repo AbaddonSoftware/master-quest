@@ -43,12 +43,32 @@ services:
       alembic upgrade head &&
       gunicorn 'wsgi:app' -b 0.0.0.0:5000 -w 1 --threads 4 --timeout 20 --keep-alive 5 --reload"
 
+  # Vite dev server (HMR) — Nginx will proxy to this
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    expose:
+      - "5173"
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5173/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
   nginx:
     image: nginx:stable-alpine
     restart: unless-stopped
     depends_on:
       - api
+      - web
     ports:
       - "8080:80"             
     volumes:
@@ -61,3 +81,4 @@ services:
 
 volumes:
   db-data:
+  web-node-modules:

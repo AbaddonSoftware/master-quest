@@ -18,9 +18,7 @@ def create_board_route():
 
     field = "room_id"
     room_id = validate_int(data.get(field), field)
-
     new_board = create_board(room_id=room_id, name=name)
-
     return jsonify({"room_id": new_board.room_id, "board_id": new_board.public_id}), 201
 
 
@@ -49,6 +47,7 @@ def create_board_column_route(board_public_id: str):
     wip_limit = ""
     field = "column_type"
     column_type = ""
-    create_board_column(
-        board_public_id, title, wip_limit, column_type
-    )  # , title: str, wip_limit:int, column_type:str)
+    try:
+        create_board_column(board_public_id, title, wip_limit, column_type)
+    except Exception as e:
+        return None
