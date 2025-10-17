@@ -18,7 +18,7 @@ export default function CreateRoomPage() {
       const public_id  = await submit(value);
       window.location.assign(`/api/rooms/${public_id}`);
     } catch {
-      /* error already set in hook */
+      /* error set in hook */
     }
   }
 

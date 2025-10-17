@@ -16,8 +16,7 @@ import { AuthProvider } from "./app/providers/AuthProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {/* If mounted at /app via Nginx, set basename="/app" */}
-    <BrowserRouter /* basename="/app" */>
+    <BrowserRouter>
       <AuthProvider>
         <App />
       </AuthProvider>

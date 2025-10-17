@@ -7,7 +7,7 @@ export function useCreateRoom() {
   async function submit(name: string): Promise<string> {
     setError(null); setIsSubmitting(true);
     try {
-      return await createRoom(name);   // ← always a string now
+      return await createRoom(name);
     } catch (e: any) {
       setError(e?.message || "Failed to create room");
       throw e;

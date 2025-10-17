@@ -41,13 +41,7 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
         order_by="BoardColumn.position",
     )
 
-    # lanes: Mapped[list["SwimLane"]] = relationship(
-    #     "SwimLane",
-    #     back_populates="board",
-    #     cascade="all, delete-orphan",
-    #     passive_deletes=True,
-    #     order_by="SwimLane.position",
-    # )
+
 
     __table_args__ = (
         Index(
@@ -91,44 +85,4 @@ class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
             "parent_id IS NULL OR parent_id <> id", name="ck_columns_no_self_parent"
         ),
         UniqueConstraint("id", "board_id", name="uq_columns_id_board"),
-        # ForeignKeyConstraint(
-        #     ["parent_id", "board_id"],
-        #     ["board_columns.id", "board_columns.board_id"],
-        #     name="fk_columns_parent_same_board",
-        #     ondelete="SET NULL",
-        #     use_alter=True,
-        # ),
-        # Index(
-        #     "uq_columns_board_parent_position_active",
-        #     "board_id",
-        #     "parent_id",
-        #     "position",
-        #     unique=True,
-        #     postgresql_where=text("deleted_at IS NULL"),
-        # ),
-        # Index("ix_columns_board_parent_position", "board_id", "parent_id", "position"),
-        # Index(
-        #     "ix_columns_board_active",
-        #     "board_id",
-        #     postgresql_where=text("deleted_at IS NULL"),
-        # ),
     )
-
-
-# class SwimLane(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
-#     __tablename__ = "swim_lanes"
-
-#     board_id = db.Column(
-#         db.Integer,
-#         ForeignKey("boards.id", ondelete="CASCADE"),
-#         nullable=False,
-#         index=True,
-#     )
-#     title = db.Column(String(128), nullable=False)
-#     position = db.Column(Integer, nullable=False, server_default=text("0"))
-#     lane_type = db.Column(String(128), nullable=False, server_default=text("'standard'"))
-
-
-#     __table_args__ = (
-#         # CheckConstraint("position >= 0", name="ck_lanes_position_nonneg"),
-#         # UniqueConstraint("id", "board_id", name="uq_lanes_id_board"),
