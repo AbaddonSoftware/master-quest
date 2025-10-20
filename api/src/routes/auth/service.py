@@ -79,3 +79,9 @@ def finish_login(params: Mapping[str, str]) -> Tuple[UserProfile, str]:
     user = _upsert_user_identity(profile)
     next_path = session.pop("post_login_next", "/")
     return user, next_path
+
+
+def set_profile_service(user_id: int, display_name: str):
+    user = db.session.get(User, user_id)
+    user.display_name = display_name
+    db.session.commit()

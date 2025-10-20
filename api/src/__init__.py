@@ -1,10 +1,12 @@
 import logging
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import DevConfig, ProdConfig
+from .domain.exceptions import AppError
 from .extensions import db
 
 logging.basicConfig(
@@ -39,28 +41,46 @@ def register_request_hook(app: Flask) -> None:
 
 
 def register_error_handlers(app: Flask) -> None:
+
+    @app.errorhandler(AppError)
+    def handle_app_error(e: AppError):
+        body = e.to_problem(instance=request.path)
+        return jsonify(body), e.status_code
+
     @app.errorhandler(HTTPException)
-    def handle_http_exception(e):
-        response = jsonify(
-            {
-                "error": e.name,
-                "status": e.code,
-                "message": e.description,
-            }
-        )
-        return response, e.code
+    def handle_http_exception(e: HTTPException):
+        body = {
+            "type": f"https://httpstatuses.com/{e.code}",
+            "title": e.name,
+            "status": e.code,
+            "detail": e.description,
+            "instance": request.path,
+        }
+        return jsonify(body), e.code
+
+    @app.errorhandler(IntegrityError)
+    def handle_integrity_error(e: IntegrityError):
+        db.session.rollback()
+        body = {
+            "type": "https://httpstatuses.com/409",
+            "title": "Conflict",
+            "status": 409,
+            "detail": "A database constraint was violated.",
+            "instance": request.path,
+        }
+        return jsonify(body), 409
 
     @app.errorhandler(Exception)
-    def handle_unexpected(e):
+    def handle_unexpected(e: Exception):
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        response = jsonify(
-            {
-                "error": "Internal Server Error",
-                "status": 500,
-                "message": "An unexpected error occurred.",
-            }
-        )
-        return response, 500
+        body = {
+            "type": "about:blank",
+            "title": "Internal Server Error",
+            "status": 500,
+            "detail": "An unexpected error occurred.",
+            "instance": request.path,
+        }
+        return jsonify(body), 500
 
 
 def create_app():

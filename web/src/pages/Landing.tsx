@@ -1,4 +1,4 @@
-import HomeTemplate from "../templates/LandingTemplate";
+import LandingTemplate from "../templates/LandingTemplate";
 import { useAuth } from "../app/providers/AuthProvider";
 
 export default function HomePage() {
@@ -7,7 +7,7 @@ export default function HomePage() {
 
   const hasName = (currentUser?.display_name !== null)
   return (
-    <HomeTemplate
+    <LandingTemplate
       signedInName={currentUser ? (currentUser.display_name || currentUser.email) : undefined}
       onGoogleClick={beginGoogleOAuth}
       onLogoutClick={currentUser ? signOut : undefined}

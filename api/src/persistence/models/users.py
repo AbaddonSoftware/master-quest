@@ -18,7 +18,7 @@ from src.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixi
 class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
     __tablename__ = "users"
     name = db.Column(String(128), nullable=False, unique=False)
-    preferred_name = db.Column(String(128), nullable=True, unique=True)
+    display_name = db.Column(String(128), nullable=True, unique=True)
     email = db.Column(CITEXT, index=True)
     terms_accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=False)
@@ -44,12 +44,6 @@ class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         cascade="save-update, merge",
         passive_deletes=True,
     )
-    # # comments: Mapped[list["Comment"]] = relationship(
-    #     "Comment",
-    #     back_populates="author",
-    #     cascade="save-update, merge",
-    #     passive_deletes=True,
-    # )
 
     __table_args__ = (
         CheckConstraint("length(email) <= 320", name="ck_users_email_length"),

@@ -1,6 +1,7 @@
 import types
 
 import pytest
+from domain.exceptions import ValidationError
 from domain.validators import validate_int, validate_str, validate_user_logged_in
 from flask import Flask, g
 from werkzeug.exceptions import HTTPException
@@ -35,9 +36,9 @@ def test_validate_str_return_string_on_success_optional():
 
 
 def test_validate_str_aborts_on_nonstring_if_required():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_str(0, "field_name", required=True)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 def test_validate_str_passes_none_if_optional():
@@ -56,36 +57,36 @@ def test_validate_str_strips_string_on_success_optional():
 
 
 def test_validate_str_aborts_empty_string_required():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_str("", "field_name", required=True)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 def test_validate_str_aborts_empty_string_optional():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_str("", "field_name", required=False)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 def test_validate_str_aborts_onlyspace_string_required():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_str("      ", "field_name", required=True)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 def test_validate_str_aborts_onlywhitespace_string_optional():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_str("      ", "field_name", required=False)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 # --- validate_int ---
 
 
 def test_validate_int_field_required_none_aborts():
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(ValidationError) as e:
         validate_int(None, "field_name", required=True)
-    assert e.value.code == 400
+    assert e.value.status_code == 422
 
 
 def test_validate_int_field_required_returns_value_on_success():

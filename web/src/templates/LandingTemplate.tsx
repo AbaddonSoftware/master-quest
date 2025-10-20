@@ -1,4 +1,6 @@
-export default function HomeTemplate(props: {
+import RoundedButton from "../components/RoundedButton";
+
+export default function LandingTemplate(props: {
   signedInName?: string;
   onGoogleClick: () => void;
   onLogoutClick?: () => void;
@@ -6,22 +8,46 @@ export default function HomeTemplate(props: {
   nextLabel?: string;
 }) {
   const { signedInName, onGoogleClick, onLogoutClick, nextHref, nextLabel } = props;
+
   return (
     <div>
-      <h1>Welcome</h1>
+      <h1 className="text-2xl font-bold">Welcome</h1>
+
       {signedInName ? (
         <>
-          <p>Signed in as <b>{signedInName}</b></p>
+          <p>
+            Signed in as <b>{signedInName}</b>
+          </p>
+
           {nextHref && nextLabel && (
-            <p><a href={nextHref}>{nextLabel} →</a></p>
+            <p>
+              <RoundedButton
+                label={`${nextLabel} →`}
+                href={nextHref}
+                className="btn-primary"
+                size="md"
+              />
+            </p>
           )}
-          {onLogoutClick && <button onClick={onLogoutClick}>Log out</button>}
+
+          {onLogoutClick && (
+            <RoundedButton
+              label="Logout"
+              onClick={onLogoutClick}
+              className="btn-sort"
+              size="md"
+            />
+          )}
         </>
       ) : (
-        <>
-          <button onClick={onGoogleClick}>Continue with Google</button>
-        </>
+        <RoundedButton
+          label="Login"
+          onClick={onGoogleClick}
+          className="btn-login"
+          size="md"
+        />
       )}
     </div>
   );
 }
+

@@ -1,5 +1,5 @@
 import TextField from "../components/TextField";
-import Button from "../components/Button";
+import RoundedButton from "../components/RoundedButton";
 
 export default function SetDisplayNameForm(props: {
   value: string;
@@ -10,13 +10,14 @@ export default function SetDisplayNameForm(props: {
 }) {
   const { value, onChange, onSubmit, isSubmitting, error } = props;
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 420 }}>
+    <div>
       <h1>Choose your display name</h1>
-      <p>It must be unique.</p>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
         <TextField label="Display name" value={value} onChange={onChange} required minLength={3} maxLength={32} />
-        <div style={{ height: 12 }} />
-        <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving…" : "Continue"}</Button>
+        <div/>
+        <RoundedButton type="submit" disabled={isSubmitting} className="btn-primary" size="md">
+          {isSubmitting ? "Saving…" : "Continue"}
+        </RoundedButton>
       </form>
       {error && <p style={{ color: "crimson" }}>{error}</p>}
     </div>

@@ -11,9 +11,10 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     and_,
+    func,
     text,
 )
-from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship
+from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship, declared_attr
 from src.extensions import db
 from src.persistence.orm.mixins import (
     DeletedAtMixin,
@@ -41,16 +42,23 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
         order_by="BoardColumn.position",
     )
 
-
-
-    __table_args__ = (
-        Index(
-            "uq_boards_room_id_active",
-            "room_id",
-            unique=True,
-            postgresql_where=text("deleted_at IS NULL"),
-        ),
+@declared_attr.directive
+def __table_args__(cls):
+    return (
+    Index(
+        "uq_boards_one_active_per_room",
+        cls.room_id,
+        unique=True,
+        postgresql_where=cls.deleted_at.is_(None),
+    ),
+    Index(
+        "uq_boards_room_lower_name",
+        cls.room_id,
+        func.lower(cls.name),
+        unique=True,
+    ),
     )
+
 
 
 class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

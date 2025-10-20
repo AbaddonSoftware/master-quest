@@ -1,0 +1,62 @@
+/* input {
+  @apply
+  border-2
+  
+} */
+
+.btn-parchment {
+  @apply 
+  relative 
+  inline-block 
+  font-semibold
+  rounded-sm 
+  cursor-pointer
+  select-none 
+  transition-all 
+  duration-150 
+  ease-out
+  hover:-translate-y-px 
+  active:translate-y-px;    
+}
+
+.btn-sm {
+  @apply px-1 py-1 my-0.5 text-sm;
+}
+.btn-md {
+  @apply px-1 py-1 my-0.5 text-base;
+}
+.btn-lg {
+  @apply px-1 py-1 my-0.5 text-lg;
+}
+.btn-xl {
+  @apply px-1 py-1 my-0.5 text-xl;
+}
+
+.btn-login {
+  @apply 
+  text-[#3a2c1a] 
+  bg-[#e8d7b3] 
+  border 
+  border-[#7b5e2a] 
+  shadow-[inset_0_0_2px_rgba(0,0,0,0.15)] 
+  hover:bg-[#e0c68d];
+}
+.btn-primary {
+  @apply 
+  text-[#3a2c1a] 
+  bg-[#e8d7b3] 
+  border 
+  border-[#7b5e2a] 
+  shadow-[inset_0_0_2px_rgba(0,0,0,0.15)] 
+  hover:bg-[#e0c68d];
+}
+.btn-sort {
+  @apply 
+  text-[#3a2c1a]
+  bg-[#e8d7b3] 
+  border 
+  border-[#7b5e2a] 
+  shadow-[inset_0_0_2px_rgba(0,0,0,0.15)] 
+  hover:bg-[#e0c68d];
+}
+

@@ -1,0 +1,86 @@
+/* === Base Reset & Page Background === */
+body {
+  @apply 
+  min-h-screen 
+  bg-stone-100 
+  text-stone-800 
+  font-serif 
+  leading-relaxed
+  p-2
+  bg-[radial-gradient(circle_at_top_left,_#f8f4e8,_#e8dcc2)]
+  bg-fixed
+  bg-cover;
+}
+
+/* === Headings === */
+h1, h2, h3 {
+  @apply 
+  font-bold 
+  text-stone-900 
+  mb-3
+  [text-shadow:0_1px_0_#fff];
+}
+
+/* === Form Containers === */
+form {
+  @apply 
+  flex 
+  flex-col 
+  gap-3 
+  max-w-md
+  bg-white/70
+  border
+  border-[#d8c8a0]
+  rounded-2xl
+  p-6
+  shadow-[0_2px_6px_rgba(0,0,0,0.15)];
+}
+
+/* === Labels === */
+label {
+  @apply 
+  text-stone-700 
+  font-medium 
+  mb-1
+  [font-family:'Cinzel',_serif];
+}
+
+/* === Text Inputs === */
+input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  @apply 
+  w-full 
+  px-4 
+  py-2 
+  rounded-lg 
+  border-2 
+  outline-none
+  bg-[#fffaf2]
+  text-stone-800
+  placeholder-stone-500
+  border-[#cbb98e];
+}
+
+input:focus,
+textarea:focus {
+  @apply 
+  border-[#b2925a]
+  ring-2
+  ring-[rgba(178,146,90,0.30)];
+}
+
+/* === Error Text === */
+p[style*="crimson"] {
+  @apply 
+  mt-2 
+  text-red-600 
+  font-medium;
+}
+
+/* === Utility: Card / Box Wrapper (optional) === */
+.card {
+  @apply bg-white/80 border border-amber-200 rounded-xl p-6 shadow-md;
+}

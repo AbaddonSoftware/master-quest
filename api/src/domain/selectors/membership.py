@@ -2,6 +2,7 @@ from typing import Optional
 
 from flask import abort, g
 from sqlalchemy import select
+from src.domain.exceptions import ForbiddenError
 from src.domain.validators import validate_user_logged_in
 from src.extensions import db
 from src.persistence.models import Room, RoomMember
@@ -20,5 +21,6 @@ def get_role_in_room(room_public_id: str) -> str:
         RoomMember.room_id == subquery_room_id,
     )
     role_in_room = db.session.execute(statement).scalar_one_or_none()
-    role_in_room or abort(404)
+    if not role_in_room:
+        raise ForbiddenError()
     return role_in_room

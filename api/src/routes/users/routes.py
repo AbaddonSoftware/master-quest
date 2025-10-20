@@ -11,7 +11,6 @@ def me():
         {
             "id": g.user.public_id,
             "email": g.user.email,
-            "display_name": g.user.preferred_name,
+            "display_name": g.user.display_name,
         }
     )
-
