@@ -2,13 +2,13 @@ import re
 from enum import Enum
 
 from ..exceptions import ValidationError
-from .string_validators import validate_identifier as validate_str
+from .string_validators import validate_display_text
 
 
 def validate_in_enum(
     field: str, allowed_enum: Enum, field_name: str, required: bool = True
 ):
-    field = validate_str(field, field_name, required)
+    field = validate_display_text(field, field_name, required=required)
     if field is None:
         return None
     field = (field or "").strip().upper()

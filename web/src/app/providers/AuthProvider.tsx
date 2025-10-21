@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getCurrentUser, signOut, beginGoogleOAuth } from "../../services/authService";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { User } from "../../types/user";
 
 type AuthContext = {
@@ -17,14 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const refresh = async () => {
     try {
       const me = await getCurrentUser();
       setCurrentUser(me);
-      const hasName = me.display_name != null;
-      const onLanding = location.pathname === "/" || location.pathname === "/login";
     } catch {
       setCurrentUser(null);
     } finally {

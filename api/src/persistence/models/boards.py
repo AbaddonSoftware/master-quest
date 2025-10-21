@@ -14,7 +14,14 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship, declared_attr
+from sqlalchemy.orm import (
+    Mapped,
+    backref,
+    declared_attr,
+    foreign,
+    mapped_column,
+    relationship,
+)
 from ...extensions import db
 from ..orm.mixins import (
     DeletedAtMixin,
@@ -41,22 +48,23 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
         passive_deletes=True,
         order_by="BoardColumn.position",
     )
+    cards: Mapped[list["Card"]] = relationship(
+        "Card",
+        back_populates="board",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="Card.position",
+    )
 
 @declared_attr.directive
 def __table_args__(cls):
     return (
-    Index(
-        "uq_boards_one_active_per_room",
-        cls.room_id,
-        unique=True,
-        postgresql_where=cls.deleted_at.is_(None),
-    ),
-    Index(
-        "uq_boards_room_lower_name",
-        cls.room_id,
-        func.lower(cls.name),
-        unique=True,
-    ),
+        Index(
+            "uq_boards_room_lower_name",
+            cls.room_id,
+            func.lower(cls.name),
+            unique=True,
+        ),
     )
 
 
@@ -82,6 +90,13 @@ class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):
     board: Mapped["Board"] = relationship(
         "Board",
         back_populates="columns",
+    )
+    cards: Mapped[list["Card"]] = relationship(
+        "Card",
+        back_populates="column",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="Card.position",
     )
 
     __table_args__ = (

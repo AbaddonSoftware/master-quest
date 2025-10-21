@@ -6,6 +6,7 @@ type LandingTemplateProps = {
   onLogoutClick?: () => void;
   nextHref?: string;
   nextLabel?: string;
+  roomsHref?: string;
 };
 
 export default function LandingTemplate({
@@ -14,6 +15,7 @@ export default function LandingTemplate({
   onLogoutClick,
   nextHref,
   nextLabel,
+  roomsHref,
 }: LandingTemplateProps) {
 
   return (
@@ -32,6 +34,17 @@ export default function LandingTemplate({
                 label={`${nextLabel} →`}
                 href={nextHref}
                 className="btn-primary"
+                size="md"
+              />
+            </p>
+          )}
+
+          {roomsHref && (
+            <p>
+              <RoundedButton
+                label="View your rooms"
+                href={roomsHref}
+                className="btn-login"
                 size="md"
               />
             </p>

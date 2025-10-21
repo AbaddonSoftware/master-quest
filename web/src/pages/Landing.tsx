@@ -33,6 +33,7 @@ export default function HomePage() {
         nextLabel={
           currentUser ? (hasName ? "Create a room" : "Finish setup") : undefined
         }
+        roomsHref={currentUser && hasName ? "/rooms" : undefined}
       />
 
       <Modal open={isLoginModalOpen} onClose={closeLoginModal} title="Sign in">

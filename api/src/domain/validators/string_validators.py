@@ -127,7 +127,6 @@ def validate_display_text(
     value = _strip_zero_width(value)
     value = " ".join(value.split())  # collapse whitespace
     _reject_control_chars(value, allow_tabs_newlines=False)
-    _enforce_ascii_only(value, field)
     _require_non_blank(value, field)
     _enforce_length(value, field, min_len, max_len)
     return value

@@ -6,6 +6,8 @@ import RequireDisplayName from "../guards/RequireDisplayName";
 const Landing = lazy(() => import("../pages/Landing"));
 const SetDisplayNamePage = lazy(() => import("../pages/Onboarding"));
 const CreateRoomPage = lazy(() => import("../pages/CreateRoomPage"));
+const RoomBoardPage = lazy(() => import("../pages/RoomBoardPage"));
+const RoomsOverviewPage = lazy(() => import("../pages/RoomsOverviewPage"));
 
 export const routes: RouteObject[] = [
   { path: "/", 
@@ -26,5 +28,25 @@ export const routes: RouteObject[] = [
         </RequireDisplayName>
       </RequireAuth>
     )
+  },
+  {
+    path: "/rooms/:roomId",
+    element: (
+      <RequireAuth>
+        <RequireDisplayName>
+          <RoomBoardPage />
+        </RequireDisplayName>
+      </RequireAuth>
+    ),
+  },
+  {
+    path: "/rooms",
+    element: (
+      <RequireAuth>
+        <RequireDisplayName>
+          <RoomsOverviewPage />
+        </RequireDisplayName>
+      </RequireAuth>
+    ),
   },
 ];

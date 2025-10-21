@@ -8,7 +8,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import DevConfig, ProdConfig
 from .domain.exceptions import AppError
 from .extensions import db
-
 handlers: list[logging.Handler] = [logging.StreamHandler()]
 try:
     handlers.insert(0, logging.FileHandler("app_error.log"))

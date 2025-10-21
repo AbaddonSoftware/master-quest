@@ -8,7 +8,7 @@ from ...domain.validators import (
 )
 
 from . import room_bp
-from .services import create_room, view_room, view_rooms
+from .services import create_room, view_room, view_rooms, delete_room
 
 
 @room_bp.post("/rooms")
@@ -33,6 +33,29 @@ def view_room_by_public_id(room_public_id: str):
 
 @room_bp.get("/rooms")
 def view_rooms_route():
-    validate_user_logged_in()
-    rooms = view_rooms()
-    return jsonify({"rooms": [room.public_id for room in rooms]}), 200
+    user_id = validate_user_logged_in()
+    rooms = view_rooms(user_id)
+    payload = []
+    for room in rooms:
+        payload.append(
+            {
+                "public_id": room.public_id,
+                "name": room.name,
+                "boards": [
+                    {
+                        "public_id": board.public_id,
+                        "name": board.name,
+                    }
+                    for board in room.boards
+                    if not board.deleted_at
+                ],
+            }
+        )
+    return jsonify({"rooms": payload}), 200
+
+
+@room_bp.delete("/rooms/<string:room_public_id>")
+def delete_room_route(room_public_id: str):
+    user_id = validate_user_logged_in()
+    delete_room(room_public_id=room_public_id, actor_user_id=user_id)
+    return jsonify({"message": "Room deleted."}), 200
