@@ -58,6 +58,7 @@ ROLE_DEFAULTS: Mapping[RoleType, FrozenSet[Permission]] = {
             Permission.EDIT_BOARD_COLUMN,
             Permission.COMMENT,
             Permission.INVITE_MEMBER,
+            Permission.MANAGE_MEMBER,
             Permission.CREATE_CARD,
             Permission.EDIT_CARD,
         }

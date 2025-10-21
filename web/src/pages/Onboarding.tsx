@@ -41,7 +41,7 @@ export default function SetDisplayNamePage() {
     try {
       await setDisplayName(value);
       await refresh();
-      navigate("/rooms/new", { replace: true });
+      navigate("/rooms", { replace: true });
     } catch (e: any) {
       setError(
         e?.status === 409

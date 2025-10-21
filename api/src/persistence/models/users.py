@@ -44,6 +44,19 @@ class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         cascade="save-update, merge",
         passive_deletes=True,
     )
+    created_invites: Mapped[list["Invite"]] = relationship(
+        "Invite",
+        back_populates="creator",
+        cascade="save-update, merge",
+        passive_deletes=True,
+        foreign_keys="Invite.created_by_id",
+    )
+    invite_redemptions: Mapped[list["InviteRedemption"]] = relationship(
+        "InviteRedemption",
+        back_populates="redeemed_by",
+        cascade="save-update, merge",
+        passive_deletes=True,
+    )
 
     __table_args__ = (
         CheckConstraint("length(email) <= 320", name="ck_users_email_length"),

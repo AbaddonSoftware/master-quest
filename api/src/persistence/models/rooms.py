@@ -44,6 +44,12 @@ class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    invites: Mapped[list["Invite"]] = relationship(
+        "Invite",
+        back_populates="room",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     boards: Mapped[list["Board"]] = relationship(
         "Board",
         back_populates="room",

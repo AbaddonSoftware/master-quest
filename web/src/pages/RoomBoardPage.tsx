@@ -6,6 +6,7 @@ import BoardColumn from "../components/BoardColumn";
 import Modal from "../components/Modal";
 import TextField from "../components/TextField";
 import RoundedButton from "../components/RoundedButton";
+import ManageMembersModal from "../components/ManageMembersModal";
 import { useRoomBoard } from "../hooks/useRoomBoard";
 import {
   createBoardColumn,
@@ -30,6 +31,7 @@ export default function RoomBoardPage() {
   const [boardDraft, setBoardDraft] = useState("");
   const [boardError, setBoardError] = useState<string | null>(null);
   const [isBoardSaving, setBoardSaving] = useState(false);
+  const [isMembersModalOpen, setMembersModalOpen] = useState(false);
 
   const [editingColumn, setEditingColumn] = useState<{
     id: number;
@@ -338,6 +340,13 @@ export default function RoomBoardPage() {
           >
             All rooms
           </RoundedButton>
+          <RoundedButton
+            size="sm"
+            className="btn-sort"
+            onClick={() => setMembersModalOpen(true)}
+          >
+            Manage members
+          </RoundedButton>
           <RoundedButton size="sm" className="btn-sort" onClick={() => setBoardModalOpen(true)}>
             Edit board
           </RoundedButton>
@@ -417,6 +426,14 @@ export default function RoomBoardPage() {
           </RoundedButton>
         </form>
       </Modal>
+
+      {roomId && (
+        <ManageMembersModal
+          roomId={roomId}
+          open={isMembersModalOpen}
+          onClose={() => setMembersModalOpen(false)}
+        />
+      )}
 
       <Modal
         open={editingColumn !== null}

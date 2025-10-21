@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import RoundedButton from "../components/RoundedButton";
 import Modal from "../components/Modal";
 import TextField from "../components/TextField";
-import { deleteRoom, fetchRooms, type RoomSummary } from "../services/roomService";
+import { acceptInvite, deleteRoom, fetchRooms, type RoomSummary } from "../services/roomService";
 import { useNavigate } from "react-router-dom";
 
 export default function RoomsOverviewPage() {
@@ -14,6 +14,10 @@ export default function RoomsOverviewPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setDeleting] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joinNotice, setJoinNotice] = useState<string | null>(null);
+  const [isJoining, setJoining] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -29,6 +33,29 @@ export default function RoomsOverviewPage() {
   }, []);
 
   const hasRooms = useMemo(() => rooms.length > 0, [rooms]);
+
+  async function handleJoin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = inviteCode.trim();
+    if (!trimmed) {
+      setJoinError("Enter an invite code to join a room.");
+      return;
+    }
+    setJoining(true);
+    setJoinError(null);
+    setJoinNotice(null);
+    try {
+      const response = await acceptInvite(trimmed);
+      setJoinNotice(`Joined ${response.room.name}.`);
+      setInviteCode("");
+      const refreshed = await fetchRooms();
+      setRooms(refreshed.rooms ?? []);
+    } catch (err: any) {
+      setJoinError(err?.message || "Could not join the room.");
+    } finally {
+      setJoining(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -47,6 +74,27 @@ export default function RoomsOverviewPage() {
         </RoundedButton>
       </header>
 
+      <section className="rounded-2xl border border-blue-200 bg-white/80 p-4 shadow-sm">
+        <form onSubmit={handleJoin} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <TextField
+            label="Have an invite code?"
+            value={inviteCode}
+            onChange={setInviteCode}
+            placeholder="Enter code"
+            maxLength={40}
+            required
+          />
+          <RoundedButton type="submit" className="btn-sort" disabled={isJoining}>
+            {isJoining ? "Joining…" : "Join room"}
+          </RoundedButton>
+        </form>
+        {(joinError || joinNotice) && (
+          <p className={`mt-2 text-sm ${joinError ? "text-red-600" : "text-green-700"}`}>
+            {joinError ?? joinNotice}
+          </p>
+        )}
+      </section>
+
       {isLoading && <p className="text-stone-600">Loading your rooms…</p>}
       {error && <p className="text-red-600">{error}</p>}
 
@@ -58,10 +106,10 @@ export default function RoomsOverviewPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rooms.map((room) => (
-          <div
-            key={room.public_id}
-            className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-white/85 p-5 shadow-sm"
-          >
+        <div
+          key={room.public_id}
+          className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-white/85 p-5 shadow-sm"
+        >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-stone-900">{room.name}</h2>
               <RoundedButton
