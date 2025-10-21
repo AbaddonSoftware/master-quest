@@ -9,13 +9,17 @@ from .config import DevConfig, ProdConfig
 from .domain.exceptions import AppError
 from .extensions import db
 
+handlers: list[logging.Handler] = [logging.StreamHandler()]
+try:
+    handlers.insert(0, logging.FileHandler("app_error.log"))
+except OSError:
+    # Fallback to console logging only if the file is not writable.
+    pass
+
 logging.basicConfig(
     level=logging.ERROR,  # Set log level to capture ERROR and above
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app_error.log"),  # Logs errors to a file
-        logging.StreamHandler(),  # Also logs errors to the console
-    ],
+    handlers=handlers,
 )
 logger = logging.getLogger(__name__)
 

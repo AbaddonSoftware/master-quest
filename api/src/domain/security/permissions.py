@@ -34,14 +34,12 @@ ROLE_DEFAULTS: Mapping[RoleType, FrozenSet[Permission]] = {
     RoleType.VIEWER: frozenset(
         {
             Permission.VIEW_ROOM,
-            Permission.VIEW_BOARD,
             Permission.COMMENT,
         }
     ),
     RoleType.MEMBER: frozenset(
         {
             Permission.VIEW_ROOM,
-            Permission.VIEW_BOARD,
             Permission.COMMENT,
             Permission.CREATE_CARD,
             Permission.EDIT_CARD,
@@ -52,7 +50,7 @@ ROLE_DEFAULTS: Mapping[RoleType, FrozenSet[Permission]] = {
             Permission.VIEW_ROOM,
             Permission.CREATE_BOARD,
             Permission.SOFT_DELETE_BOARD,
-            Permission.VIEW_BOARD,
+            Permission.CREATE_BOARD_COLUMN,
             Permission.COMMENT,
             Permission.INVITE_MEMBER,
             Permission.CREATE_CARD,
