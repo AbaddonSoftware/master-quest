@@ -1,7 +1,7 @@
 from flask import jsonify, request
-from src.domain.decorators import require_permission
-from src.domain.security.permissions import Permission, RoomType
-from src.domain.validators import (
+from ...domain.decorators import require_permission
+from ...domain.security.permissions import Permission, RoomType
+from ...domain.validators import (
     validate_in_enum,
     validate_str,
     validate_user_logged_in,

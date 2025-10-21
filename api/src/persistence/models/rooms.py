@@ -14,9 +14,9 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.domain.security.permissions import RoleType, RoomType
-from src.extensions import db
-from src.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
+from ...domain.security.permissions import RoleType, RoomType
+from ...extensions import db
+from ...persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class Room(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):

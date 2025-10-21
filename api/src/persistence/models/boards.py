@@ -15,8 +15,8 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, backref, foreign, mapped_column, relationship, declared_attr
-from src.extensions import db
-from src.persistence.orm.mixins import (
+from ...extensions import db
+from ..orm.mixins import (
     DeletedAtMixin,
     PublicIdMixin,
     SurrogatePK,

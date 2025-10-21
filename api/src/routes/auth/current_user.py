@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from flask import g, session
-from src.extensions import db
-from src.persistence.models import User
+from ...extensions import db
+from ...persistence.models import User
 
 
 def load_current_user():

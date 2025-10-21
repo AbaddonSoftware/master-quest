@@ -2,10 +2,10 @@ from typing import Optional
 
 from flask import abort, g
 from sqlalchemy import select
-from src.domain.exceptions import ForbiddenError
-from src.domain.validators import validate_user_logged_in
-from src.extensions import db
-from src.persistence.models import Room, RoomMember
+from ..exceptions import ForbiddenError
+from ..validators import validate_user_logged_in
+from ...extensions import db
+from ...persistence.models import Room, RoomMember
 
 
 def get_role_in_room(room_public_id: str) -> str:

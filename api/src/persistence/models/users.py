@@ -11,8 +11,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, relationship
-from src.extensions import db
-from src.persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
+from ...extensions import db
+from ...persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class User(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin):

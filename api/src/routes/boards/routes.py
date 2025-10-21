@@ -1,7 +1,7 @@
 from flask import jsonify, request, url_for
-from src.domain.decorators.decorator import require_permission
-from src.domain.security.permissions import Permission
-from src.persistence.models import Board
+from ...domain.decorators import require_permission
+from ...domain.security.permissions import Permission
+from ...persistence.models import Board
 
 from . import board_bp
 from .services import create_board, create_board_column, soft_delete_board, view_board

@@ -1,7 +1,7 @@
 # from app.persistence.models import Card, Comment
 from flask import g
 from sqlalchemy import exists, select
-from src.extensions import db
+from ...extensions import db
 
 
 def is_comment_author(comment_public_id: str) -> bool:

@@ -1,6 +1,6 @@
-from src.domain.security.permissions import RoleType, RoomType
-from src.extensions import db
-from src.persistence.models import Room, RoomMember
+from ...domain.security.permissions import RoleType, RoomType
+from ...extensions import db
+from ...persistence.models import Room, RoomMember
 
 
 def create_room(

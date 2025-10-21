@@ -1,11 +1,11 @@
 from flask import abort, g, request
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from src.domain.validators import validate_in_enum, validate_int, validate_str
-from src.extensions import db
-from src.persistence.models import Board, Room
+from ...domain.validators import validate_in_enum, validate_int, validate_str
+from ...extensions import db
+from ...persistence.models import Board, Room
 
-from src.domain.exceptions import ConflictError, NotFoundError
+from ...domain.exceptions import ConflictError, NotFoundError
 
 
 def create_board(*, room_public_id: int, raw_name: str) -> Board:

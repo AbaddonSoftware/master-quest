@@ -4,9 +4,9 @@ from functools import wraps
 from typing import Callable
 
 from flask import abort, current_app, g, request
-from src.domain.exceptions import ForbiddenError, ValidationError
-from src.domain.security.permissions import ROLE_DEFAULTS, Permission
-from src.domain.selectors.membership import get_role_in_room
+from ..exceptions import ForbiddenError, ValidationError
+from ..security.permissions import ROLE_DEFAULTS, Permission
+from ..selectors.membership import get_role_in_room
 
 
 def require_permission(
