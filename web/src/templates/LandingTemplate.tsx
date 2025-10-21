@@ -1,13 +1,20 @@
 import RoundedButton from "../components/RoundedButton";
 
-export default function LandingTemplate(props: {
+type LandingTemplateProps = {
   signedInName?: string;
-  onGoogleClick: () => void;
+  onLoginClick: () => void;
   onLogoutClick?: () => void;
   nextHref?: string;
   nextLabel?: string;
-}) {
-  const { signedInName, onGoogleClick, onLogoutClick, nextHref, nextLabel } = props;
+};
+
+export default function LandingTemplate({
+  signedInName,
+  onLoginClick,
+  onLogoutClick,
+  nextHref,
+  nextLabel,
+}: LandingTemplateProps) {
 
   return (
     <div>
@@ -42,7 +49,7 @@ export default function LandingTemplate(props: {
       ) : (
         <RoundedButton
           label="Login"
-          onClick={onGoogleClick}
+          onClick={onLoginClick}
           className="btn-login"
           size="md"
         />
@@ -50,4 +57,3 @@ export default function LandingTemplate(props: {
     </div>
   );
 }
-
