@@ -29,7 +29,11 @@ export default function AppHeader({ extraActions, children }: AppHeaderProps) {
           onClick={() => navigate("/rooms")}
           className="text-lg font-semibold uppercase tracking-widest text-stone-700 transition hover:text-stone-900"
         >
-          Master Quest
+        <img
+        src="/logo/Master-Quest.svg"
+        alt="Master Quest Logo"
+        className="w-50 h-auto mx-auto"
+        />
         </button>
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">

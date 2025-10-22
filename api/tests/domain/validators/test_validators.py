@@ -4,7 +4,6 @@ import pytest
 from domain.exceptions import ValidationError
 from domain.validators import validate_int, validate_str, validate_user_logged_in
 from flask import Flask, g
-from werkzeug.exceptions import HTTPException
 
 # ---------- Helpers / Fixtures ----------
 
