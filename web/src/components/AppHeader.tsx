@@ -19,7 +19,7 @@ export default function AppHeader({ extraActions, children }: AppHeaderProps) {
     return window.matchMedia("(min-width: 768px)").matches;
   });
 
-  const ToggleIcon = isExpanded ? EyeOffIcon : EyeIcon;
+  const ToggleIcon = isExpanded ? EyeIcon : EyeOffIcon;
 
   return (
     <header className="sticky top-0 z-20 flex flex-col border-b border-stone-200 bg-[#fffaf2]/95 backdrop-blur">
