@@ -21,10 +21,12 @@
 
 ## Features (Work in Progress)
 
-- **Kanban Board** – Organize tasks across customizable columns.
-- **Twee Integration** – Write and play through *optional* card “stories” to demonstrate needs.
-- **Multi-user Support** (planned) – Host multiple rooms for different projects.
-- **Demo Mode** – Guest login with a preloaded sample board for quick exploration.
+- **Kanban Board** - Organize tasks across customizable columns.
+- **Multi-user Support** (planned) - Host multiple rooms for different projects.
+- **Demo Mode** - Guest login with a preloaded sample board for quick exploration.
+- **Twee Integration** - Write and play through *optional* card “stories” to demonstrate needs.
+- **PlantUML Integration** - A text-based solution for entity relationship diagrams and basic ux.
+
 
 ---
 

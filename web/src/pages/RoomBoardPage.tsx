@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import AppHeader from "../components/AppHeader";
 import BoardColumn from "../components/BoardColumn";
 import Modal from "../components/Modal";
 import TextField from "../components/TextField";
 import RoundedButton from "../components/RoundedButton";
-import ManageMembersModal from "../components/ManageMembersModal";
+import ManageRoomModal from "../components/ManageRoomModal";
 import { useRoomBoard } from "../hooks/useRoomBoard";
 import {
   createBoardColumn,
@@ -21,6 +22,26 @@ import {
   fetchBoardArchive,
   type BoardArchiveResponse,
 } from "../services/boardService";
+import { leaveRoom } from "../services/roomService";
+import type { Role, RoomMember } from "../services/roomService";
+
+const ROLE_LABELS: Record<Role, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
+
+const ROLE_WEIGHT: Record<Role, number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  MEMBER: 2,
+  VIEWER: 3,
+};
+
+function memberDisplayName(member: RoomMember) {
+  return member.display_name?.trim() || member.name;
+}
 
 export default function RoomBoardPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -62,6 +83,9 @@ export default function RoomBoardPage() {
   const [archiveNotice, setArchiveNotice] = useState<string | null>(null);
   const [isArchiveLoading, setArchiveLoading] = useState(false);
   const [isArchiveOpen, setArchiveOpen] = useState(false);
+  const [isMembersListOpen, setMembersListOpen] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [isLeaving, setLeaving] = useState(false);
 
   const groupedColumns = useMemo(
     () => columns.filter((column) => column.parent_id === null),
@@ -104,31 +128,231 @@ export default function RoomBoardPage() {
     [groupedColumns]
   );
 
-  if (isLoading) {
-    return <div className="p-6 text-stone-700">Loading board…</div>;
+  const membershipRole: Role = room?.membership?.role ?? "VIEWER";
+  const membershipUserPublicId = room?.membership?.user_public_id ?? null;
+  const sortedMembers = useMemo(() => {
+    const members = room?.members ?? [];
+    return members.slice().sort((a, b) => {
+      const weightDiff = ROLE_WEIGHT[a.role] - ROLE_WEIGHT[b.role];
+      if (weightDiff !== 0) return weightDiff;
+      const aHasDisplay = a.display_name ? 0 : 1;
+      const bHasDisplay = b.display_name ? 0 : 1;
+      if (aHasDisplay !== bHasDisplay) return aHasDisplay - bHasDisplay;
+      const nameA = memberDisplayName(a).toLocaleLowerCase();
+      const nameB = memberDisplayName(b).toLocaleLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    });
+  }, [room?.members]);
+  const membershipLabel = ROLE_LABELS[membershipRole];
+  const canManageRoom = membershipRole === "OWNER" || membershipRole === "ADMIN";
+  const canLeaveRoom = membershipRole !== "OWNER";
+
+  async function handleLeaveRoom() {
+    if (!roomId) return;
+    const confirmed = window.confirm(
+      "Leave this room? You’ll lose access to its boards until someone invites you back."
+    );
+    if (!confirmed) return;
+    setLeaving(true);
+    setLeaveError(null);
+    try {
+      await leaveRoom(roomId);
+      navigate("/rooms");
+    } catch (err: any) {
+      setLeaveError(err?.message || "Could not leave the room.");
+    } finally {
+      setLeaving(false);
+    }
   }
 
-  if (error) {
-    return (
-      <div className="p-6 text-stone-700">
-        <p className="text-red-600">Unable to load board.</p>
-        <p className="text-sm">{error}</p>
+  let mainContent: ReactNode;
+  if (isLoading) {
+    mainContent = <p className="text-stone-700">Loading board…</p>;
+  } else if (error) {
+    mainContent = (
+      <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">
+        <p className="font-semibold">Unable to load board.</p>
+        <p className="mt-1 text-red-600">{error}</p>
       </div>
     );
-  }
-
-  if (!board) {
-    return (
-      <div className="p-6 text-stone-700">
+  } else if (!board) {
+    mainContent = (
+      <div className="rounded-2xl border border-amber-200 bg-white/85 p-6 text-stone-700">
         <h1 className="text-xl font-semibold text-stone-900">No boards yet</h1>
-        <p className="mt-2 text-stone-600">
+        <p className="mt-2 text-sm text-stone-600">
           Create your first board to start organising tasks in this room.
         </p>
       </div>
     );
+  } else {
+    mainContent = (
+      <>
+        <section className="flex flex-1 flex-col gap-4 pb-4 -mx-2 px-2 sm:px-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
+          {groupedColumns.length ? (
+            groupedColumns.map((column) => (
+              <BoardColumn
+                key={column.id}
+                id={column.id}
+                title={column.title}
+                wipLimit={column.wip_limit}
+                cards={column.cards.map((card) => ({
+                  id: card.id,
+                  title: card.title,
+                  description: card.description,
+                  columnId: column.id,
+                }))}
+                onEditColumn={openColumnModal}
+                onColumnDoubleClick={(columnId) =>
+                  openColumnModal(columnId, column.title, column.wip_limit ?? null)
+                }
+                onEditCard={(cardId, columnId, initial) =>
+                  openCardModal(columnId, initial, "edit", cardId)
+                }
+                onAddCard={(columnId) =>
+                  openCardModal(columnId, { title: "", description: "" }, "create")
+                }
+                onArchiveColumn={handleArchiveColumn}
+                onArchiveCard={handleArchiveCard}
+              />
+            ))
+          ) : (
+            <div className="mt-8 text-stone-600">
+              This board does not have any columns yet. Create one to get started.
+            </div>
+          )}
+          <div className="flex flex-1 flex-col md:flex-none">
+            <button
+              type="button"
+              onClick={() => {
+                setCreatingColumn(true);
+                setEditingColumn({ id: 0, title: "", wipLimit: null });
+                setColumnDraft({ title: "", wip_limit: "" });
+                setColumnError(null);
+              }}
+              className="flex w-full flex-shrink-0 items-center justify-center rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 p-4 text-sm font-semibold text-blue-700 transition hover:border-blue-500 hover:bg-blue-100 md:w-52 lg:w-56 xl:w-60"
+            >
+              + Add column
+            </button>
+          </div>
+        </section>
+
+        <div className="fixed bottom-6 right-6 flex flex-col items-end gap-2">
+          <RoundedButton
+            size="sm"
+            className="btn-sort"
+            onClick={() => setArchiveOpen((prev) => !prev)}
+          >
+            {isArchiveOpen
+              ? "Hide archived"
+              : `Archived (${archive.columns.length + archive.cards.length})`}
+          </RoundedButton>
+          {isArchiveOpen && (
+            <div className="w-80 max-h-96 overflow-y-auto rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-xl">
+              <h3 className="text-lg font-semibold text-stone-900">Archived items</h3>
+              {archiveNotice && <p className="text-xs text-green-700">{archiveNotice}</p>}
+              {archiveError && <p className="text-xs text-red-600">{archiveError}</p>}
+              {isArchiveLoading ? (
+                <p className="text-sm text-stone-600">Loading…</p>
+              ) : (
+                <div className="mt-2 flex flex-col gap-4 text-sm text-stone-700">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-stone-500">Columns</p>
+                    {archive.columns.length ? (
+                      <ul className="mt-1 flex flex-col gap-2">
+                        {archive.columns.map((column) => (
+                          <li
+                            key={column.id}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="line-clamp-2 break-words">{column.title}</span>
+                            <RoundedButton
+                              size="sm"
+                              className="btn-login"
+                              onClick={() => handleRestoreColumn(column.id)}
+                            >
+                              Restore
+                            </RoundedButton>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-stone-500">No archived columns.</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-stone-500">Cards</p>
+                    {archive.cards.length ? (
+                      <ul className="mt-1 flex flex-col gap-2">
+                        {archive.cards.map((card) => (
+                          <li
+                            key={card.public_id}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="line-clamp-2 break-words">{card.title}</span>
+                            <RoundedButton
+                              size="sm"
+                              className="btn-login"
+                              onClick={() => handleRestoreCard(card.public_id, card.column_id)}
+                            >
+                              Restore
+                            </RoundedButton>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-stone-500">No archived cards.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </>
+    );
   }
 
-  const currentRoomName = room?.name ?? roomId ?? "";
+  const headerActions = (
+    <>
+      <RoundedButton
+        size="sm"
+        className="btn-sort"
+        onClick={() => setMembersListOpen(true)}
+      >
+        View members
+      </RoundedButton>
+      {canManageRoom && (
+        <RoundedButton
+          size="sm"
+          className="btn-login"
+          onClick={() => setMembersModalOpen(true)}
+        >
+          Manage Room
+        </RoundedButton>
+      )}
+      {board && (
+        <RoundedButton
+          size="sm"
+          className="btn-sort"
+          onClick={() => setBoardModalOpen(true)}
+        >
+          Edit board
+        </RoundedButton>
+      )}
+      {canLeaveRoom && room && (
+        <RoundedButton
+          size="sm"
+          className="btn-sort text-red-700 hover:text-red-900"
+          disabled={isLeaving}
+          onClick={handleLeaveRoom}
+        >
+          {isLeaving ? "Leaving…" : "Leave room"}
+        </RoundedButton>
+      )}
+    </>
+  );
 
   async function handleBoardSave(event: FormEvent) {
     event.preventDefault();
@@ -324,87 +548,97 @@ export default function RoomBoardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-wide text-stone-500">
-            Room · {currentRoomName}
-          </p>
-          <h1 className="text-3xl font-bold text-stone-900">{board.name}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <RoundedButton
-            size="sm"
-            className="btn-login"
-            onClick={() => navigate("/rooms")}
-          >
-            All rooms
-          </RoundedButton>
-          <RoundedButton
-            size="sm"
-            className="btn-sort"
-            onClick={() => setMembersModalOpen(true)}
-          >
-            Manage members
-          </RoundedButton>
-          <RoundedButton size="sm" className="btn-sort" onClick={() => setBoardModalOpen(true)}>
-            Edit board
-          </RoundedButton>
-        </div>
-      </header>
-
-      <section className="flex flex-1 flex-col gap-4 pb-4 -mx-2 px-2 sm:px-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
-        {groupedColumns.length ? (
-          groupedColumns.map((column) => (
-            <BoardColumn
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              wipLimit={column.wip_limit}
-              cards={column.cards.map((card) => ({
-                id: card.id,
-                title: card.title,
-                description: card.description,
-                columnId: column.id,
-              }))}
-              onEditColumn={openColumnModal}
-              onColumnDoubleClick={(columnId) =>
-                openColumnModal(
-                  columnId,
-                  column.title,
-                  column.wip_limit ?? null
-                )
-              }
-              onEditCard={(cardId, columnId, initial) =>
-                openCardModal(columnId, initial, "edit", cardId)
-              }
-              onAddCard={(columnId) =>
-                openCardModal(columnId, { title: "", description: "" }, "create")
-              }
-              onArchiveColumn={handleArchiveColumn}
-              onArchiveCard={handleArchiveCard}
-            />
-          ))
+    <div className="flex min-h-screen flex-col bg-[#fffaf2]">
+      <AppHeader extraActions={headerActions}>
+        {room ? (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs uppercase tracking-wide text-stone-500">
+                Room · {room.name}
+              </p>
+              {board && (
+                <p className="text-sm text-stone-600">
+                  Active board:{" "}
+                  <span className="font-semibold text-stone-900">{board.name}</span>
+                </p>
+              )}
+              <p className="text-xs text-stone-500">Your role: {membershipLabel}</p>
+            </div>
+            <div className="flex flex-col gap-1 md:items-end">
+              <p className="text-xs uppercase tracking-wide text-stone-500">
+                Members ({sortedMembers.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {sortedMembers.length ? (
+                  sortedMembers.map((member) => (
+                    <span
+                      key={member.user_public_id}
+                      className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/70 px-3 py-1 text-xs text-stone-700"
+                    >
+                      <span className="font-medium text-stone-900">
+                        {memberDisplayName(member)}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wide text-stone-500">
+                        {member.user_public_id === membershipUserPublicId
+                          ? "You"
+                          : ROLE_LABELS[member.role]}
+                      </span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-stone-500">No members yet.</span>
+                )}
+              </div>
+            </div>
+          </div>
         ) : (
-          <div className="mt-8 text-stone-600">
-            This board does not have any columns yet. Create one to get started.
+          <p className="text-sm text-stone-600">Loading room details…</p>
+        )}
+      </AppHeader>
+
+      <main className="flex flex-1 flex-col gap-4 p-6">
+        {leaveError && (
+          <div className="rounded-xl border border-red-200 bg-red-50/70 p-3 text-sm text-red-700">
+            {leaveError}
           </div>
         )}
-        <div className="flex flex-1 flex-col md:flex-none">
-          <button
-            type="button"
-            onClick={() => {
-              setCreatingColumn(true);
-              setEditingColumn({ id: 0, title: "", wipLimit: null });
-              setColumnDraft({ title: "", wip_limit: "" });
-              setColumnError(null);
-            }}
-            className="flex w-full flex-shrink-0 items-center justify-center rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 p-4 text-sm font-semibold text-blue-700 transition hover:border-blue-500 hover:bg-blue-100 md:w-52 lg:w-56 xl:w-60"
-          >
-            + Add column
-          </button>
-        </div>
-      </section>
+        {mainContent}
+      </main>
+
+      <Modal
+        open={isMembersListOpen}
+        onClose={() => setMembersListOpen(false)}
+        title="Room members"
+      >
+        {sortedMembers.length ? (
+          <ul className="flex flex-col gap-3">
+            {sortedMembers.map((member) => {
+              const descriptor =
+                member.user_public_id === membershipUserPublicId
+                  ? `You — ${ROLE_LABELS[member.role]}`
+                  : ROLE_LABELS[member.role];
+              return (
+                <li
+                  key={member.user_public_id}
+                  className="rounded-xl border border-stone-200 bg-white/80 p-3"
+                >
+                  <p className="text-sm font-semibold text-stone-900">
+                    {memberDisplayName(member)}
+                  </p>
+                  <p className="text-xs uppercase tracking-wide text-stone-500">
+                    {descriptor}
+                  </p>
+                  {member.email && (
+                    <p className="text-xs text-stone-500">{member.email}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-stone-600">No other members yet.</p>
+        )}
+      </Modal>
 
       <Modal
         open={isBoardModalOpen}
@@ -428,10 +662,13 @@ export default function RoomBoardPage() {
       </Modal>
 
       {roomId && (
-        <ManageMembersModal
+        <ManageRoomModal
           roomId={roomId}
           open={isMembersModalOpen}
-          onClose={() => setMembersModalOpen(false)}
+          onClose={() => {
+            setMembersModalOpen(false);
+            reload();
+          }}
         />
       )}
 
@@ -518,70 +755,6 @@ export default function RoomBoardPage() {
         )}
       </Modal>
 
-      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-2">
-        <RoundedButton
-          size="sm"
-          className="btn-sort"
-          onClick={() => setArchiveOpen((prev) => !prev)}
-        >
-          {isArchiveOpen ? "Hide archived" : `Archived (${archive.columns.length + archive.cards.length})`}
-        </RoundedButton>
-        {isArchiveOpen && (
-          <div className="w-80 max-h-96 overflow-y-auto rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-stone-900">Archived items</h3>
-            {archiveNotice && (<p className="text-xs text-green-700">{archiveNotice}</p>)}
-            {archiveError && (<p className="text-xs text-red-600">{archiveError}</p>)}
-            {isArchiveLoading ? (
-              <p className="text-sm text-stone-600">Loading…</p>
-            ) : (
-              <div className="mt-2 flex flex-col gap-4 text-sm text-stone-700">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">Columns</p>
-                  {archive.columns.length ? (
-                    <ul className="mt-1 flex flex-col gap-2">
-                      {archive.columns.map((column) => (
-                        <li key={column.id} className="flex items-center justify-between gap-2">
-                          <span className="line-clamp-2 break-words">{column.title}</span>
-                          <RoundedButton
-                            size="sm"
-                            className="btn-login"
-                            onClick={() => handleRestoreColumn(column.id)}
-                          >
-                            Restore
-                          </RoundedButton>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-stone-500">No archived columns.</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">Cards</p>
-                  {archive.cards.length ? (
-                    <ul className="mt-1 flex flex-col gap-2">
-                      {archive.cards.map((card) => (
-                        <li key={card.public_id} className="flex items-center justify-between gap-2">
-                          <span className="line-clamp-2 break-words">{card.title}</span>
-                          <RoundedButton
-                            size="sm"
-                            className="btn-login"
-                            onClick={() => handleRestoreCard(card.public_id, card.column_id)}
-                          >
-                            Restore
-                          </RoundedButton>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-stone-500">No archived cards.</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

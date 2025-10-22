@@ -24,9 +24,7 @@ from ...persistence.orm.mixins import (
 )
 
 
-class Invite(
-    db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
-):
+class Invite(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
     __tablename__ = "invites"
 
     room_id: Mapped[int] = mapped_column(
@@ -48,7 +46,9 @@ class Invite(
     )
 
     room: Mapped["Room"] = relationship("Room", back_populates="invites")
-    creator: Mapped["User | None"] = relationship("User", back_populates="created_invites")
+    creator: Mapped["User | None"] = relationship(
+        "User", back_populates="created_invites"
+    )
     redemptions: Mapped[list["InviteRedemption"]] = relationship(
         "InviteRedemption",
         back_populates="invite",
@@ -67,7 +67,10 @@ class InviteRedemption(db.Model, SurrogatePK, TimestampMixin):
     __tablename__ = "invite_redemptions"
 
     invite_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("invites.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("invites.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     redeemed_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True

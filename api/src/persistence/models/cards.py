@@ -13,12 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...extensions import db
-from ..orm.mixins import (
-    DeletedAtMixin,
-    PublicIdMixin,
-    SurrogatePK,
-    TimestampMixin,
-)
+from ..orm.mixins import DeletedAtMixin, PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class Card(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):

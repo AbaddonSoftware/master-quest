@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Callable
 
 from flask import abort, current_app, g, request
+
 from ..exceptions import ForbiddenError, ValidationError
 from ..security.permissions import ROLE_DEFAULTS, Permission
 from ..selectors.membership import get_role_in_room

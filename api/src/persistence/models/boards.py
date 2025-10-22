@@ -22,13 +22,9 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+
 from ...extensions import db
-from ..orm.mixins import (
-    DeletedAtMixin,
-    PublicIdMixin,
-    SurrogatePK,
-    TimestampMixin,
-)
+from ..orm.mixins import DeletedAtMixin, PublicIdMixin, SurrogatePK, TimestampMixin
 
 
 class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin):
@@ -56,6 +52,7 @@ class Board(db.Model, SurrogatePK, PublicIdMixin, TimestampMixin, DeletedAtMixin
         order_by="Card.position",
     )
 
+
 @declared_attr.directive
 def __table_args__(cls):
     return (
@@ -66,7 +63,6 @@ def __table_args__(cls):
             unique=True,
         ),
     )
-
 
 
 class BoardColumn(db.Model, SurrogatePK, TimestampMixin, DeletedAtMixin):

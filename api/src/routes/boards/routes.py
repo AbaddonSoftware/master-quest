@@ -2,22 +2,17 @@ from flask import jsonify, request, url_for
 
 from ...domain.decorators import require_permission
 from ...domain.security.permissions import Permission
-
 from . import board_bp
 from .services import (
     create_board,
     create_board_column,
-    create_card,
+    get_board_with_columns,
+    list_archived_items,
+    restore_column,
+    soft_delete_board,
+    soft_delete_column,
     update_board,
     update_board_column,
-    update_card,
-    soft_delete_column,
-    restore_column,
-    soft_delete_card,
-    restore_card,
-    list_archived_items,
-    get_board_with_columns,
-    soft_delete_board,
     view_board,
 )
 
@@ -132,34 +127,6 @@ def get_board_route(room_public_id: str, board_public_id: str):
     )
 
 
-@board_bp.post("/<string:board_public_id>/columns/<int:column_id>/cards")
-@require_permission(Permission.CREATE_CARD)
-def create_card_route(
-    room_public_id: str, board_public_id: str, column_id: int
-):
-    data = request.get_json(silent=True) or {}
-    card = create_card(
-        room_public_id=room_public_id,
-        board_public_id=board_public_id,
-        column_id=column_id,
-        title=data.get("title"),
-        description=data.get("description"),
-    )
-    resp = jsonify(
-        {
-            "card": {
-                "id": str(card.public_id),
-                "title": card.title,
-                "description": card.description,
-                "position": card.position,
-                "column_id": card.column_id,
-            }
-        }
-    )
-    resp.status_code = 201
-    return resp
-
-
 @board_bp.patch("/<string:board_public_id>")
 @require_permission(Permission.EDIT_BOARD)
 def update_board_route(room_public_id: str, board_public_id: str):
@@ -205,38 +172,6 @@ def update_board_column_route(
     )
 
 
-@board_bp.patch(
-    "/<string:board_public_id>/columns/<int:column_id>/cards/<string:card_id>"
-)
-@require_permission(Permission.EDIT_CARD)
-def update_card_route(
-    room_public_id: str,
-    board_public_id: str,
-    column_id: int,
-    card_id: str,
-):
-    data = request.get_json(silent=True) or {}
-    card = update_card(
-        room_public_id=room_public_id,
-        board_public_id=board_public_id,
-        card_public_id=card_id,
-        title=data.get("title"),
-        description=data.get("description"),
-        target_column_id=data.get("column_id", column_id),
-    )
-    return jsonify(
-        {
-            "card": {
-                "id": str(card.public_id),
-                "title": card.title,
-                "description": card.description,
-                "position": card.position,
-                "column_id": card.column_id,
-            }
-        }
-    )
-
-
 @board_bp.delete("/<string:board_public_id>/columns/<int:column_id>")
 @require_permission(Permission.EDIT_BOARD_COLUMN)
 def delete_board_column_route(
@@ -272,51 +207,9 @@ def restore_board_column_route(
     )
 
 
-@board_bp.delete(
-    "/<string:board_public_id>/columns/<int:column_id>/cards/<string:card_id>"
-)
-@require_permission(Permission.EDIT_CARD)
-def delete_card_route(
-    room_public_id: str, board_public_id: str, column_id: int, card_id: str
-):
-    soft_delete_card(
-        room_public_id=room_public_id,
-        board_public_id=board_public_id,
-        card_public_id=card_id,
-    )
-    return jsonify({"message": "Card archived."}), 200
-
-
-@board_bp.post(
-    "/<string:board_public_id>/columns/<int:column_id>/cards/<string:card_id>/restore"
-)
-@require_permission(Permission.EDIT_CARD)
-def restore_card_route(
-    room_public_id: str, board_public_id: str, column_id: int, card_id: str
-):
-    card = restore_card(
-        room_public_id=room_public_id,
-        board_public_id=board_public_id,
-        card_public_id=card_id,
-    )
-    return jsonify(
-        {
-            "card": {
-                "id": str(card.public_id),
-                "title": card.title,
-                "description": card.description,
-                "position": card.position,
-                "column_id": card.column_id,
-            }
-        }
-    )
-
-
 @board_bp.get("/<string:board_public_id>/archive")
 @require_permission(Permission.VIEW_BOARD)
-def get_board_archive(
-    room_public_id: str, board_public_id: str
-):
+def get_board_archive(room_public_id: str, board_public_id: str):
     data = list_archived_items(
         room_public_id=room_public_id, board_public_id=board_public_id
     )

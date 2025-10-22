@@ -5,11 +5,11 @@ Revises: d9a6e8a01d9d
 Create Date: 2025-01-18 12:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e0a7d8f3c6aa"
@@ -64,9 +64,7 @@ def upgrade() -> None:
             "redemption_max >= 1",
             name="ck_invites_redemption_max_positive",
         ),
-        sa.ForeignKeyConstraint(
-            ["created_by_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["created_by_id"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["room_id"], ["rooms.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -113,12 +111,8 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["invite_id"], ["invites.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["redeemed_by_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["invite_id"], ["invites.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["redeemed_by_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "invite_id",
@@ -142,8 +136,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index(op.f("ix_invite_redemptions_redeemed_by_id"), table_name="invite_redemptions")
-    op.drop_index(op.f("ix_invite_redemptions_invite_id"), table_name="invite_redemptions")
+    op.drop_index(
+        op.f("ix_invite_redemptions_redeemed_by_id"), table_name="invite_redemptions"
+    )
+    op.drop_index(
+        op.f("ix_invite_redemptions_invite_id"), table_name="invite_redemptions"
+    )
     op.drop_table("invite_redemptions")
     op.drop_index(op.f("ix_invites_expires_at"), table_name="invites")
     op.drop_index(op.f("ix_invites_deleted_by_id"), table_name="invites")

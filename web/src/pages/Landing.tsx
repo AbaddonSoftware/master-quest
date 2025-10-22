@@ -1,16 +1,19 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import LandingTemplate from "../templates/LandingTemplate";
 import { useAuth } from "../app/providers/AuthProvider";
 import Modal from "../components/Modal";
 import RoundedButton from "../components/RoundedButton";
 
 export default function HomePage() {
-  const { currentUser, isLoading, beginGoogleOAuth, signOut } = useAuth();
+  const { currentUser, isLoading, beginGoogleOAuth } = useAuth();
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
 
   if (isLoading) return null;
 
-  const hasName = currentUser?.display_name !== null;
+  if (currentUser) {
+    return <Navigate to="/rooms" replace />;
+  }
 
   const openLoginModal = () => setLoginModalOpen(true);
   const closeLoginModal = () => setLoginModalOpen(false);
@@ -22,18 +25,7 @@ export default function HomePage() {
   return (
     <>
       <LandingTemplate
-        signedInName={
-          currentUser ? currentUser.display_name || currentUser.email : undefined
-        }
         onLoginClick={openLoginModal}
-        onLogoutClick={currentUser ? signOut : undefined}
-        nextHref={
-          currentUser ? (hasName ? "/rooms/new" : "/onboarding") : undefined
-        }
-        nextLabel={
-          currentUser ? (hasName ? "Create a room" : "Finish setup") : undefined
-        }
-        roomsHref={currentUser && hasName ? "/rooms" : undefined}
       />
 
       <Modal open={isLoginModalOpen} onClose={closeLoginModal} title="Sign in">

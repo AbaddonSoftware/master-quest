@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import g, session
+
 from ...extensions import db
 from ...persistence.models import User
 

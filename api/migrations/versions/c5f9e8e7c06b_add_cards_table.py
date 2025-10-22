@@ -7,9 +7,8 @@ Create Date: 2025-10-20 22:32:00.000000
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c5f9e8e7c06b"
@@ -25,7 +24,9 @@ def upgrade() -> None:
         sa.Column("column_id", sa.Integer(), nullable=False),
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("position", sa.Integer(), server_default=sa.text("0"), nullable=False),
+        sa.Column(
+            "position", sa.Integer(), server_default=sa.text("0"), nullable=False
+        ),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("public_id", sa.UUID(), nullable=False),
         sa.Column(
@@ -44,7 +45,9 @@ def upgrade() -> None:
         sa.Column("deleted_by_id", sa.Integer(), nullable=True),
         sa.CheckConstraint("position >= 0", name="ck_cards_position_nonneg"),
         sa.ForeignKeyConstraint(["board_id"], ["boards.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["column_id"], ["board_columns.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["column_id"], ["board_columns.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("column_id", "position", name="uq_cards_column_position"),
         sa.UniqueConstraint("public_id"),

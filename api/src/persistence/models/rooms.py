@@ -14,6 +14,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ...domain.security.permissions import RoleType, RoomType
 from ...extensions import db
 from ...persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin

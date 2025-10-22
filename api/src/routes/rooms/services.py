@@ -22,7 +22,6 @@ from ...persistence.models import (
     User,
 )
 
-
 DEFAULT_BOARD_NAME = "Adventure Roadmap"
 DEFAULT_INVITE_VALID_FOR_HOURS = 24 * 7
 ALLOWED_INVITE_ROLES = {RoleType.VIEWER, RoleType.MEMBER}
@@ -33,6 +32,7 @@ ROLE_PRIORITY: dict[RoleType, int] = {
     RoleType.ADMIN: 3,
     RoleType.OWNER: 4,
 }
+
 
 def _seed_default_board(room: Room) -> None:
     board = Board(room_id=room.id, name=DEFAULT_BOARD_NAME)
@@ -126,17 +126,45 @@ def create_room(
 
 
 def view_room(room_public_id: str) -> Room | None:
-    return Room.query.filter_by(public_id=room_public_id).first()
+    stmt = (
+        select(Room)
+        .options(
+            selectinload(Room.boards),
+            selectinload(Room.members).selectinload(RoomMember.user),
+        )
+        .where(Room.public_id == room_public_id)
+    )
+    return db.session.execute(stmt).scalars().unique().one_or_none()
 
 
 def view_rooms(user_id: int) -> list[Room]:
     stmt = (
         select(Room)
         .join(RoomMember, RoomMember.room_id == Room.id)
+        .options(
+            selectinload(Room.boards),
+            selectinload(Room.members).selectinload(RoomMember.user),
+        )
         .where(RoomMember.user_id == user_id)
     )
     rooms = db.session.execute(stmt).scalars().unique().all()
     return rooms
+
+
+def leave_room(*, room_public_id: str, user_id: int) -> None:
+    room = _get_room_by_public_id(room_public_id)
+    membership = db.session.execute(
+        select(RoomMember).where(
+            RoomMember.room_id == room.id,
+            RoomMember.user_id == user_id,
+        )
+    ).scalar_one_or_none()
+    if membership is None:
+        raise ForbiddenError("You are not a member of this room.")
+    if room.owner_id == user_id:
+        raise ForbiddenError("Room owners cannot leave their own room.")
+    db.session.delete(membership)
+    db.session.commit()
 
 
 def delete_room(*, room_public_id: str, actor_user_id: int) -> None:
@@ -264,9 +292,7 @@ def create_room_invite(
     invite_role = RoleType(normalized_role_value)
     if invite_role not in ALLOWED_INVITE_ROLES:
         allowed = ", ".join(sorted(r.value for r in ALLOWED_INVITE_ROLES))
-        raise ValidationError(
-            f"Invites may only assign one of: {allowed}."
-        )
+        raise ValidationError(f"Invites may only assign one of: {allowed}.")
 
     uses = validate_int(
         max_uses,
@@ -328,9 +354,7 @@ def revoke_room_invite(
     return invite
 
 
-def accept_invite_code(
-    *, code: str, user_id: int
-) -> tuple[RoomMember, Invite, Room]:
+def accept_invite_code(*, code: str, user_id: int) -> tuple[RoomMember, Invite, Room]:
     cleaned_code = (code or "").strip()
     if not cleaned_code:
         raise ValidationError("Invite code is required.")
@@ -350,7 +374,9 @@ def accept_invite_code(
 
     redemption_count = len(invite.redemptions)
     if redemption_count >= invite.redemption_max:
-        raise ForbiddenError("This invite has already been used the maximum number of times.")
+        raise ForbiddenError(
+            "This invite has already been used the maximum number of times."
+        )
 
     existing_membership = db.session.execute(
         select(RoomMember).where(

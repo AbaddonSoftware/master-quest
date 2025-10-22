@@ -1,6 +1,6 @@
 from flask import jsonify, make_response, redirect, request, session
-from ...domain.validators import validate_str, validate_user_logged_in
 
+from ...domain.validators import validate_str, validate_user_logged_in
 from . import auth_bp as bp
 from .service import bootstrap, finish_login, set_profile_service, start_login
 

@@ -1,9 +1,8 @@
 from flask import jsonify
 
 from ...domain.validators import validate_user_logged_in
-
-from . import invite_bp
 from ..rooms.services import accept_invite_code
+from . import invite_bp
 
 
 @invite_bp.post("/<string:invite_code>/accept")

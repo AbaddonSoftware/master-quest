@@ -1,6 +1,7 @@
 # from app.persistence.models import Card, Comment
 from flask import g
 from sqlalchemy import exists, select
+
 from ...extensions import db
 
 

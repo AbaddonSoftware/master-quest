@@ -59,7 +59,7 @@ function formatDate(value: string | null) {
   }
 }
 
-export default function ManageMembersModal({ roomId, open, onClose }: Props) {
+export default function ManageRoomModal({ roomId, open, onClose }: Props) {
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [memberDrafts, setMemberDrafts] = useState<Record<string, MemberDraft>>({});
   const [invites, setInvites] = useState<RoomInvite[]>([]);
@@ -326,7 +326,7 @@ export default function ManageMembersModal({ roomId, open, onClose }: Props) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Manage members">
+    <Modal open={open} onClose={onClose} title="Manage Room">
       {isLoading ? (
         <p className="text-sm text-stone-600">Loading members…</p>
       ) : error ? (

@@ -4,9 +4,9 @@ from typing import Mapping, Optional, Tuple
 
 from authlib.integrations.flask_client import OAuth
 from flask import session
+
 from ...extensions import db
 from ...persistence.models import Identity, User
-
 from .domain_types import UserProfile
 from .google_client import GoogleClient
 from .oauth2_client import OAuth2Client

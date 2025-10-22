@@ -1,72 +1,23 @@
 import RoundedButton from "../components/RoundedButton";
 
 type LandingTemplateProps = {
-  signedInName?: string;
   onLoginClick: () => void;
-  onLogoutClick?: () => void;
-  nextHref?: string;
-  nextLabel?: string;
-  roomsHref?: string;
 };
 
-export default function LandingTemplate({
-  signedInName,
-  onLoginClick,
-  onLogoutClick,
-  nextHref,
-  nextLabel,
-  roomsHref,
-}: LandingTemplateProps) {
-
+export default function LandingTemplate({ onLoginClick }: LandingTemplateProps) {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Welcome</h1>
-
-      {signedInName ? (
-        <>
-          <p>
-            Signed in as <b>{signedInName}</b>
-          </p>
-
-          {nextHref && nextLabel && (
-            <p>
-              <RoundedButton
-                label={`${nextLabel} →`}
-                href={nextHref}
-                className="btn-primary"
-                size="md"
-              />
-            </p>
-          )}
-
-          {roomsHref && (
-            <p>
-              <RoundedButton
-                label="View your rooms"
-                href={roomsHref}
-                className="btn-login"
-                size="md"
-              />
-            </p>
-          )}
-
-          {onLogoutClick && (
-            <RoundedButton
-              label="Logout"
-              onClick={onLogoutClick}
-              className="btn-sort"
-              size="md"
-            />
-          )}
-        </>
-      ) : (
-        <RoundedButton
-          label="Login"
-          onClick={onLoginClick}
-          className="btn-login"
-          size="md"
-        />
-      )}
-    </div>
+    <section className="flex flex-col items-center gap-6 text-center">
+      <h1 className="text-4xl font-bold text-stone-900">Welcome adventurers...</h1>
+      <p className="max-w-xl text-lg text-stone-700">
+        Step through the gates and rally your party. Sign in to reach your rooms and
+        continue the quest.
+      </p>
+      <RoundedButton
+        label="Login"
+        onClick={onLoginClick}
+        className="btn-login"
+        size="md"
+      />
+    </section>
   );
 }

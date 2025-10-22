@@ -1,17 +1,6 @@
 import { apiRequestJson } from "./http";
 
-export type RoomDto = { public_id: string; name: string };
-export type RoomSummary = {
-  public_id: string;
-  name: string;
-  boards: { public_id: string; name: string }[];
-};
-
 export type Role = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
-
-type CreateRoomResp = { public_id: string; name: string };
-
-type RoomsResponse = { rooms: RoomSummary[] };
 
 export type RoomMember = {
   user_public_id: string;
@@ -20,6 +9,25 @@ export type RoomMember = {
   email: string | null;
   role: Role;
 };
+
+export type RoomMembership = {
+  role: Role;
+  user_public_id: string | null;
+};
+
+export type RoomSummary = {
+  public_id: string;
+  name: string;
+  boards: { public_id: string; name: string }[];
+  members: RoomMember[];
+  membership: RoomMembership;
+};
+
+export type RoomDto = RoomSummary;
+
+type CreateRoomResp = { public_id: string; name: string };
+
+type RoomsResponse = { rooms: RoomSummary[] };
 
 type MembersResponse = { members: RoomMember[] };
 
@@ -57,6 +65,12 @@ export function fetchRooms() {
 
 export function deleteRoom(roomId: string) {
   return apiRequestJson<{ message: string }>(`/api/rooms/${roomId}`, {
+    method: "DELETE",
+  });
+}
+
+export function leaveRoom(roomId: string) {
+  return apiRequestJson<{ message: string }>(`/api/rooms/${roomId}/membership`, {
     method: "DELETE",
   });
 }

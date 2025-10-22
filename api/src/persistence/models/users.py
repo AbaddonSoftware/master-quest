@@ -11,6 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, relationship
+
 from ...extensions import db
 from ...persistence.orm.mixins import PublicIdMixin, SurrogatePK, TimestampMixin
 

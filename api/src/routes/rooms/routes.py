@@ -1,24 +1,74 @@
 from flask import jsonify, request
-from ...domain.decorators import require_permission
-from ...domain.security.permissions import Permission, RoomType
-from ...domain.validators import (
-    validate_in_enum,
-    validate_str,
-    validate_user_logged_in,
-)
 
+from ...domain.decorators import require_permission
+from ...domain.security.permissions import Permission
+from ...domain.validators import validate_str, validate_user_logged_in
 from . import room_bp
 from .services import (
     create_room,
+    create_room_invite,
+    delete_room,
+    leave_room,
+    list_room_invites,
+    list_room_members,
+    revoke_room_invite,
+    update_room_member_role,
     view_room,
     view_rooms,
-    delete_room,
-    list_room_members,
-    update_room_member_role,
-    list_room_invites,
-    create_room_invite,
-    revoke_room_invite,
 )
+
+ROLE_WEIGHT = {
+    "OWNER": 0,
+    "ADMIN": 1,
+    "MEMBER": 2,
+    "VIEWER": 3,
+}
+
+
+def _serialize_room(room, *, current_user_id: int):
+    sorted_members = sorted(
+        (member for member in room.members if member.user is not None),
+        key=lambda member: (
+            ROLE_WEIGHT.get(member.role.value, 99),
+            member.user.display_name is None,
+            (member.user.display_name or member.user.name or "").casefold(),
+        ),
+    )
+    membership_role = None
+    membership_user_public_id = None
+    members_payload = []
+    for member in sorted_members:
+        user = member.user
+        if member.user_id == current_user_id:
+            membership_role = member.role.value
+            membership_user_public_id = str(user.public_id)
+        members_payload.append(
+            {
+                "user_public_id": str(user.public_id),
+                "display_name": user.display_name,
+                "name": user.name,
+                "email": user.email,
+                "role": member.role.value,
+            }
+        )
+    membership_role = membership_role or "VIEWER"
+    return {
+        "public_id": room.public_id,
+        "name": room.name,
+        "boards": [
+            {
+                "public_id": board.public_id,
+                "name": board.name,
+            }
+            for board in room.boards
+            if not getattr(board, "deleted_at", None)
+        ],
+        "members": members_payload,
+        "membership": {
+            "role": membership_role,
+            "user_public_id": membership_user_public_id,
+        },
+    }
 
 
 @room_bp.post("/rooms")
@@ -32,35 +82,20 @@ def create_room_route():
 
 
 @room_bp.get("/rooms/<string:room_public_id>")
+@require_permission(Permission.VIEW_ROOM)
 def view_room_by_public_id(room_public_id: str):
+    user_id = validate_user_logged_in()
     room = view_room(room_public_id)
-    room_data = {
-        "public_id": room.public_id,
-        "name": room.name,
-    }
-    return jsonify(room_data), 200
+    if room is None:
+        return jsonify({"message": "Room not found."}), 404
+    return jsonify(_serialize_room(room, current_user_id=user_id)), 200
 
 
 @room_bp.get("/rooms")
 def view_rooms_route():
     user_id = validate_user_logged_in()
     rooms = view_rooms(user_id)
-    payload = []
-    for room in rooms:
-        payload.append(
-            {
-                "public_id": room.public_id,
-                "name": room.name,
-                "boards": [
-                    {
-                        "public_id": board.public_id,
-                        "name": board.name,
-                    }
-                    for board in room.boards
-                    if not board.deleted_at
-                ],
-            }
-        )
+    payload = [_serialize_room(room, current_user_id=user_id) for room in rooms]
     return jsonify({"rooms": payload}), 200
 
 
@@ -126,9 +161,9 @@ def list_invites_route(room_public_id: str):
             {
                 "code": invite.code,
                 "role": invite.role.value,
-                "expires_at": invite.expires_at.isoformat()
-                if invite.expires_at
-                else None,
+                "expires_at": (
+                    invite.expires_at.isoformat() if invite.expires_at else None
+                ),
                 "max_uses": invite.redemption_max,
                 "used": len(invite.redemptions),
                 "remaining": max(invite.redemption_max - len(invite.redemptions), 0),
@@ -155,9 +190,9 @@ def create_invite_route(room_public_id: str):
                 "invite": {
                     "code": invite.code,
                     "role": invite.role.value,
-                    "expires_at": invite.expires_at.isoformat()
-                    if invite.expires_at
-                    else None,
+                    "expires_at": (
+                        invite.expires_at.isoformat() if invite.expires_at else None
+                    ),
                     "max_uses": invite.redemption_max,
                     "used": 0,
                     "remaining": invite.redemption_max,
@@ -166,6 +201,14 @@ def create_invite_route(room_public_id: str):
         ),
         201,
     )
+
+
+@room_bp.delete("/rooms/<string:room_public_id>/membership")
+@require_permission(Permission.VIEW_ROOM)
+def leave_room_route(room_public_id: str):
+    user_id = validate_user_logged_in()
+    leave_room(room_public_id=room_public_id, user_id=user_id)
+    return jsonify({"message": "Left room."}), 200
 
 
 @room_bp.delete("/rooms/<string:room_public_id>/invites/<string:invite_code>")
