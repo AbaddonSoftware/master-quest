@@ -20,7 +20,7 @@ export default function LandingTemplate({ onLoginClick }: LandingTemplateProps) 
       <RoundedButton
         label="Login"
         onClick={onLoginClick}
-        className="btn-login"
+        className="btn-login w-40"
         size="md"
       />
     </section>
