@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import g
+from flask import g, current_app
 from sqlalchemy import func
 
 from ...domain.exceptions import ConflictError, NotFoundError
@@ -60,7 +60,7 @@ def create_card(
     _assert_wip_capacity(column)
 
     next_position = _next_card_position(column.id)
-
+    # current_app.logger.info(f"create: {str(next_position)}")
     card = Card(
         board_id=board.id,
         column_id=column.id,
@@ -120,6 +120,7 @@ def update_card(
             )
         _assert_wip_capacity(column, exclude_card_id=card.id)
         next_position = _next_card_position(column.id, exclude_card_id=card.id)
+        # current_app.logger.info(f"update: {str(next_position)}")
         card.position = next_position
         card.column_id = column.id
 
@@ -178,24 +179,20 @@ def restore_card(
     _assert_wip_capacity(column)
 
     card.restore()
-    card.position = _next_card_position(column.id)
+    next_position = _next_card_position(column.id)
+    # current_app.logger.info(f"restore: {str(next_position)}")
+    card.position = next_position
     db.session.commit()
     return card
 
-
 def _next_card_position(column_id: int, *, exclude_card_id: int | None = None) -> int:
-    stmt = (
-        db.select(Card.position)
-        .where(Card.column_id == column_id, Card.deleted_at.is_(None))
-        .order_by(Card.position.desc())
-        .limit(1)
-        .with_for_update()
+    stmt = db.select(func.coalesce(func.max(Card.position), -1)).where(
+        Card.column_id == column_id
     )
     if exclude_card_id is not None:
         stmt = stmt.where(Card.id != exclude_card_id)
-    highest = db.session.execute(stmt).scalar_one_or_none()
-    return (highest or -1) + 1
-
+    highest = db.session.execute(stmt).scalar_one()
+    return highest + 1
 
 def _assert_wip_capacity(
     column: BoardColumn, *, exclude_card_id: int | None = None

@@ -1,5 +1,4 @@
 import logging
-
 from flask import Flask, jsonify, request
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
@@ -23,6 +22,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def register_cors(app: Flask) -> None:
+    allowed = set(app.config.get("CORS_ALLOWED_ORIGINS", []))
+
+    @app.after_request
+    def add_cors_headers(resp):
+        origin = request.headers.get("Origin")
+        if origin and origin in allowed:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Allow-Headers"] = \
+                request.headers.get("Access-Control-Request-Headers", "Content-Type")
+            resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        return resp
+
+    @app.route("/<path:_path>", methods=["OPTIONS"], defaults={"_path": ""})
+    def cors_preflight(_path):
+        response = jsonify({})
+        return add_cors_headers(response)
 
 def register_blueprints(app: Flask) -> None:
     from .healthz import bp as health_bp
@@ -64,6 +81,7 @@ def register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(IntegrityError)
     def handle_integrity_error(e: IntegrityError):
+        # app.logger.info(e)
         db.session.rollback()
         body = {
             "type": "https://httpstatuses.com/409",
@@ -89,13 +107,15 @@ def register_error_handlers(app: Flask) -> None:
 
 def create_app():
     app = Flask(__name__)
-    cfg = DevConfig
+    from os import getenv
+    cfg = ProdConfig if getenv("FLASK_ENV", "").lower() == "production" else DevConfig
     app.config.from_object(cfg)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
     db.init_app(app)
     import src.persistence.models
 
+    register_cors(app)
     register_blueprints(app)
     register_request_hook(app)
     register_error_handlers(app)

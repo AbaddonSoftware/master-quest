@@ -9,7 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY api/pyproject.toml api/alembic.ini ./
-COPY api/ ./src
+COPY api/src ./src
+COPY api/migrations ./migrations
+COPY api/wsgi.py ./wsgi.py
 
 RUN pip install --upgrade pip setuptools wheel && \
     pip install . && \

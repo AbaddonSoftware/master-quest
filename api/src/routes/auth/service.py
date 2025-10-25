@@ -56,6 +56,11 @@ def _base() -> str:
     )
 
 
+def frontend_base() -> Optional[str]:
+    base = (os.environ.get("FRONTEND_BASE_URL") or "").strip()
+    return base.rstrip("/") or None
+
+
 def bootstrap(app) -> None:
     global _oauth, _client, _boot
     if _boot:

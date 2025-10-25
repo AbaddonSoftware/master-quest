@@ -2,7 +2,13 @@ from flask import jsonify, make_response, redirect, request, session
 
 from ...domain.validators import validate_str, validate_user_logged_in
 from . import auth_bp as bp
-from .service import bootstrap, finish_login, set_profile_service, start_login
+from .service import (
+    bootstrap,
+    finish_login,
+    frontend_base,
+    set_profile_service,
+    start_login,
+)
 
 
 @bp.record_once
@@ -23,7 +29,11 @@ def callback_google():
         session.clear()
         session["public_id"] = str(user.public_id)
         # session.permanent = True
-        return redirect(nxt, code=302)
+        target = nxt
+        fb = frontend_base()
+        if fb:
+            target = f"{fb}{nxt}"
+        return redirect(target, code=302)
     except Exception as e:
         return jsonify({"error": type(e).__name__, "message": str(e)}), 400
 
@@ -33,7 +43,7 @@ def set_profile():
     id = validate_user_logged_in()
     data = request.get_json(silent=True) or {}
     field = "display_name"
-    display_name = validate_str(data.get(field), field, min_len=3, max_len=30)
+    display_name = validate_str(data.get(field), field, min_len=3, max_len=32)
     set_profile_service(id, display_name)
     return jsonify({"msg": "ok"}), 200
 

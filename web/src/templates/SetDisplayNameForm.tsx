@@ -12,6 +12,7 @@ export default function SetDisplayNameForm(props: {
   return (
     <div>
       <h1>Choose your display name</h1>
+      <p>Must be 3 to 32 letters or numbers (optional underscores or dashes allowed in between).</p>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
         <TextField label="Display name" value={value} onChange={onChange} required minLength={3} maxLength={32} />
         <div/>
