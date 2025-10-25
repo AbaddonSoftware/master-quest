@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchBoardDetail,
   fetchBoardIdsForRoom,
@@ -8,6 +8,7 @@ import { fetchRoom, type RoomDto } from "../services/roomService";
 
 type State = {
   isLoading: boolean;
+  isRefreshing: boolean;
   error: string | null;
   activeBoardId: string | null;
 
@@ -17,32 +18,48 @@ type State = {
 type BoardColumns = BoardDetailResponse["columns"];
 type BoardInfo = BoardDetailResponse["board"] | null;
 
+const INITIAL_STATE: State = {
+  isLoading: true,
+  isRefreshing: false,
+  error: null,
+  activeBoardId: null,
+  room: null,
+};
+
 export function useRoomBoard(roomId: string | undefined) {
-  const [basics, setBasics] = useState<Omit<State, "columns" | "board">>({
-    isLoading: true,
-    error: null,
-    activeBoardId: null,
-    room: null,
-  });
+  const [basics, setBasics] = useState<State>(INITIAL_STATE);
   const [board, setBoard] = useState<BoardInfo>(null);
   const [columns, setColumns] = useState<BoardColumns>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const hasLoadedOnce = useRef(false);
+  const previousRoomId = useRef<string | undefined>();
+  const previousBoardIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!roomId) {
-      setBasics({ isLoading: false, error: null, activeBoardId: null, room: null });
+      hasLoadedOnce.current = false;
+      previousRoomId.current = undefined;
+      previousBoardIdRef.current = null;
+      setBasics({ ...INITIAL_STATE, isLoading: false });
       setBoard(null);
       setColumns([]);
       return;
     }
 
+    const isRoomChange = previousRoomId.current !== roomId;
+    if (isRoomChange) {
+      hasLoadedOnce.current = false;
+    }
+    previousRoomId.current = roomId;
+
     let cancelled = false;
     async function load() {
       setBasics((prev) => ({
         ...prev,
-        isLoading: true,
+        isLoading: isRoomChange || !hasLoadedOnce.current,
+        isRefreshing: !isRoomChange && hasLoadedOnce.current,
         error: null,
-        room: prev.room?.public_id === roomId ? prev.room : null,
+        room: isRoomChange ? null : prev.room,
       }));
       try {
         const [roomData, boardsInRoom] = await Promise.all([
@@ -51,8 +68,11 @@ export function useRoomBoard(roomId: string | undefined) {
         ]);
         if (!boardsInRoom.length) {
           if (!cancelled) {
+            hasLoadedOnce.current = true;
+            previousBoardIdRef.current = null;
             setBasics({
               isLoading: false,
+              isRefreshing: false,
               error: null,
               activeBoardId: null,
               room: roomData,
@@ -63,7 +83,10 @@ export function useRoomBoard(roomId: string | undefined) {
           return;
         }
 
-        const boardId = boardsInRoom[0];
+        const previousBoardId = previousBoardIdRef.current;
+        const boardId = previousBoardId && boardsInRoom.includes(previousBoardId)
+          ? previousBoardId
+          : boardsInRoom[0];
         const detail = await fetchBoardDetail(roomId, boardId);
         const sortedColumns = detail.columns
           .slice()
@@ -74,25 +97,34 @@ export function useRoomBoard(roomId: string | undefined) {
           }));
 
         if (!cancelled) {
+          hasLoadedOnce.current = true;
           setBasics({
             isLoading: false,
+            isRefreshing: false,
             error: null,
             activeBoardId: boardId,
             room: roomData,
           });
+          previousBoardIdRef.current = detail.board?.public_id ?? null;
           setBoard(detail.board);
           setColumns(sortedColumns);
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         if (!cancelled) {
+          const message =
+            error instanceof Error && error.message ? error.message : "Failed to load board.";
           setBasics((prev) => ({
             ...prev,
             isLoading: false,
-            error: err?.message || "Failed to load board.",
-            activeBoardId: null,
+            isRefreshing: false,
+            error: message,
+            activeBoardId: prev.activeBoardId,
           }));
-          setBoard(null);
-          setColumns([]);
+          if (!hasLoadedOnce.current) {
+            previousBoardIdRef.current = null;
+            setBoard(null);
+            setColumns([]);
+          }
         }
       }
     }

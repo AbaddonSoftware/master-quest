@@ -46,7 +46,7 @@ function memberDisplayName(member: RoomMember) {
 export default function RoomBoardPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const { isLoading, error, board, columns, room, reload } = useRoomBoard(roomId);
+  const { isLoading, isRefreshing, error, board, columns, room, reload } = useRoomBoard(roomId);
 
   const [isBoardModalOpen, setBoardModalOpen] = useState(false);
   const [boardDraft, setBoardDraft] = useState("");
@@ -167,10 +167,12 @@ export default function RoomBoardPage() {
     }
   }
 
+  const hasBoard = Boolean(board);
+  const showInitialLoading = isLoading && !hasBoard && columns.length === 0;
   let mainContent: ReactNode;
-  if (isLoading) {
+  if (showInitialLoading) {
     mainContent = <p className="text-stone-700">Loading board…</p>;
-  } else if (error) {
+  } else if (error && !hasBoard) {
     mainContent = (
       <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">
         <p className="font-semibold">Unable to load board.</p>
@@ -189,6 +191,13 @@ export default function RoomBoardPage() {
   } else {
     mainContent = (
       <>
+        {(isRefreshing || error) && (
+          <div className="mb-3 rounded-xl border border-amber-200 bg-white/80 px-3 py-2 text-sm text-stone-700 shadow-sm">
+            {isRefreshing && <span>Updating board…</span>}
+            {isRefreshing && error && <span className="mx-2 text-stone-400">•</span>}
+            {error && <span className="text-red-600">{error}</span>}
+          </div>
+        )}
         <section className="flex flex-1 flex-col gap-4 pb-4 -mx-2 px-2 sm:px-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
           {groupedColumns.length ? (
             groupedColumns.map((column) => (
