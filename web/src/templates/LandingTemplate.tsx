@@ -14,7 +14,7 @@ export default function LandingTemplate({
   return (
     <section className="flex flex-col items-center gap-6 text-center">
       <img
-      src="/logo/Master-Quest.svg"
+      src="/logo/MasterQuest.svg"
       alt="Master Quest Logo"
       className="w-lg h-auto mx-auto"
       />

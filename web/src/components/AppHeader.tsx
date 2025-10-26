@@ -23,18 +23,21 @@ export default function AppHeader({ extraActions, children }: AppHeaderProps) {
 
   return (
     <header className="sticky top-0 z-20 flex flex-col border-b border-stone-200 bg-[#fffaf2]/95 backdrop-blur">
+
       <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
+        <img
+          src="/logo/MasterQuest.svg"
+          alt="MasterQuest Logo"
+          className="w-50 h-auto"
+        />
         <button
           type="button"
           onClick={() => navigate("/rooms")}
           className="text-lg font-semibold uppercase tracking-widest text-stone-700 transition hover:text-stone-900"
         >
-        <img
-        src="/logo/Master-Quest.svg"
-        alt="Master Quest Logo"
-        className="w-50 h-auto mx-auto"
-        />
         </button>
+
+
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
             <RoundedButton

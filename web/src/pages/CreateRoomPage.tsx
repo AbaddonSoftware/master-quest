@@ -30,7 +30,7 @@ export default function CreateRoomPage() {
           <div className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white/85 p-6 text-center shadow-sm">
             <h1 className="text-2xl font-bold text-stone-900">Room created!</h1>
             <p className="mb-4 mt-2 text-sm text-stone-700">
-              <strong>{createdRoom.name}</strong> is ready. Share the link or jump in now.
+              <strong>{createdRoom.name}</strong> is ready.
             </p>
             <RoundedButton
               href={`/rooms/${createdRoom.public_id}`}

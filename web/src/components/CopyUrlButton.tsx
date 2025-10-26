@@ -17,7 +17,7 @@ const CopyUrlButton: React.FC = () => {
   return (
     <button
       onClick={handleCopy}
-      className={`relative px-0.5 rounded-md text-sm font-medium transition-colors mx-1 border border-[#7b5e2a] 
+      className={`relative mx-1 px-0.5 rounded-md text-sm font-medium transition-colors border border-[#7b5e2a] 
         ${copied
           ? "bg-[#cde8b3] text-black"
           : "bg-[#e8d7b3] text-[#3a2c1a]  hover:bg-[#f4e0b6] active:bg-[#dac8a4]"}
