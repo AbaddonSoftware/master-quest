@@ -4,7 +4,7 @@ from typing import Mapping, Optional
 from authlib.integrations.flask_client import OAuth
 from flask.wrappers import Response
 
-from .domain_types import Tokens, UserProfile
+from ..types.domain_types import Tokens, UserProfile
 
 
 class GoogleClient:

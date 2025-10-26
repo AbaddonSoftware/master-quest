@@ -228,34 +228,19 @@ export default function RoomsOverviewPage() {
             </p>
           </div>
         </header>
-
-        <section className="rounded-2xl border border-blue-200 bg-white/80 p-4 shadow-sm">
-          <form onSubmit={handleJoin} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <TextField
-              label="Have an invite code?"
-              value={inviteCode}
-              onChange={setInviteCode}
-              placeholder="Enter code"
-              maxLength={40}
-              required
-            />
-            <RoundedButton type="submit" className="btn-sort" disabled={isJoining}>
-              {isJoining ? "Joining…" : "Join room"}
-            </RoundedButton>
-          </form>
-          {(joinError || joinNotice) && (
-            <p className={`mt-2 text-sm ${joinError ? "text-red-600" : "text-green-700"}`}>
-              {joinError ?? joinNotice}
-            </p>
-          )}
-        </section>
-
         {isLoading && <p className="text-stone-600">Loading your rooms…</p>}
         {error && <p className="text-red-600">{error}</p>}
 
         {!isLoading && !error && !hasRooms && (
-          <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/70 p-5 text-sm text-amber-700">
-            You don’t have any rooms yet. Create your first one to get started.
+          <div className="rounded-2xl border border-dashed border-blue-200 bg-white/80 p-5 text-sm text-amber-700 shadow-sm">
+            <p>You don’t have any rooms yet. Create your first one to get started.</p>
+              <RoundedButton
+              size="sm"
+              className="btn-primary m-3"
+              onClick={() => navigate("/rooms/new")}
+              >
+              Create your first room.
+              </RoundedButton>
           </div>
         )}
 
@@ -278,6 +263,27 @@ export default function RoomsOverviewPage() {
             </div>
           </section>
         )}
+
+        <section className="rounded-2xl border border-blue-200 bg-white/80 p-4 shadow-sm">
+          <form onSubmit={handleJoin} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <TextField
+              label="Have an invite code?"
+              value={inviteCode}
+              onChange={setInviteCode}
+              placeholder="Enter code"
+              maxLength={40}
+              required
+            />
+            <RoundedButton type="submit" className="btn-sort" disabled={isJoining}>
+              {isJoining ? "Joining…" : "Join room"}
+            </RoundedButton>
+          </form>
+          {(joinError || joinNotice) && (
+            <p className={`mt-2 text-sm ${joinError ? "text-red-600" : "text-green-700"}`}>
+              {joinError ?? joinNotice}
+            </p>
+          )}
+        </section>
 
         <Modal
           open={roomToDelete !== null}

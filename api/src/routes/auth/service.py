@@ -7,10 +7,10 @@ from flask import session
 
 from ...extensions import db
 from ...persistence.models import Identity, User
-from .domain_types import UserProfile
-from .google_client import GoogleClient
-from .oauth2_client import OAuth2Client
-from .utils import sanitize_next_path
+from .types.domain_types import UserProfile
+from .providers.google_client import GoogleClient
+from .providers.oauth2_client import OAuth2Client
+from .utils.utils import sanitize_next_path
 
 _oauth: Optional[OAuth] = None
 _client: Optional[OAuth2Client] = None

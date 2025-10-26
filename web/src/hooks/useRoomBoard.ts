@@ -32,7 +32,7 @@ export function useRoomBoard(roomId: string | undefined) {
   const [columns, setColumns] = useState<BoardColumns>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const hasLoadedOnce = useRef(false);
-  const previousRoomId = useRef<string | undefined>();
+  const previousRoomId = useRef<string | undefined>(undefined);
   const previousBoardIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -46,11 +46,12 @@ export function useRoomBoard(roomId: string | undefined) {
       return;
     }
 
-    const isRoomChange = previousRoomId.current !== roomId;
+    const activeRoomId = roomId;
+    const isRoomChange = previousRoomId.current !== activeRoomId;
     if (isRoomChange) {
       hasLoadedOnce.current = false;
     }
-    previousRoomId.current = roomId;
+    previousRoomId.current = activeRoomId;
 
     let cancelled = false;
     async function load() {
@@ -63,8 +64,8 @@ export function useRoomBoard(roomId: string | undefined) {
       }));
       try {
         const [roomData, boardsInRoom] = await Promise.all([
-          fetchRoom(roomId),
-          fetchBoardIdsForRoom(roomId),
+          fetchRoom(activeRoomId),
+          fetchBoardIdsForRoom(activeRoomId),
         ]);
         if (!boardsInRoom.length) {
           if (!cancelled) {
@@ -87,7 +88,7 @@ export function useRoomBoard(roomId: string | undefined) {
         const boardId = previousBoardId && boardsInRoom.includes(previousBoardId)
           ? previousBoardId
           : boardsInRoom[0];
-        const detail = await fetchBoardDetail(roomId, boardId);
+        const detail = await fetchBoardDetail(activeRoomId, boardId);
         const sortedColumns = detail.columns
           .slice()
           .sort((a, b) => a.position - b.position)
