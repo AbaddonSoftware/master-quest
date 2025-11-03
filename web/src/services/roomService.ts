@@ -2,6 +2,8 @@ import { apiRequestJson } from "./http";
 
 export type Role = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
 
+export type InviteRole = "MEMBER" | "VIEWER";
+
 export type RoomMember = {
   user_public_id: string;
   display_name: string | null;
@@ -33,7 +35,7 @@ type MembersResponse = { members: RoomMember[] };
 
 export type RoomInvite = {
   code: string;
-  role: Role;
+  role: InviteRole;
   expires_at: string | null;
   max_uses: number;
   used: number;
@@ -103,7 +105,7 @@ export function fetchRoomInvites(roomId: string) {
 
 export function createRoomInvite(
   roomId: string,
-  payload: { role: Role; max_uses?: number; expires_in_hours?: number }
+  payload: { role: InviteRole; max_uses?: number; expires_in_hours?: number }
 ) {
   return apiRequestJson<{ invite: RoomInvite }>(
     `/api/rooms/${roomId}/invites`,

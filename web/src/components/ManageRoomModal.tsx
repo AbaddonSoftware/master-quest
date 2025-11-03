@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Modal from "./Modal";
 import RoundedButton from "./RoundedButton";
 import TextField from "./TextField";
@@ -8,6 +8,7 @@ import {
   fetchRoomMembers,
   revokeRoomInvite,
   updateRoomMemberRole,
+  type InviteRole,
   type Role,
   type RoomInvite,
   type RoomMember,
@@ -26,8 +27,10 @@ type MemberDraft = {
   error: string | null;
 };
 
+const INVITE_ROLES: InviteRole[] = ["VIEWER", "MEMBER"];
+
 type InviteForm = {
-  role: Role;
+  role: InviteRole;
   maxUses: string;
   expiresInDays: string;
 };
@@ -47,7 +50,6 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 
 const EDITABLE_ROLES: Role[] = ["VIEWER", "MEMBER", "ADMIN"];
-const INVITE_ROLES: Role[] = ["VIEWER", "MEMBER"];
 
 function formatDate(value: string | null) {
   if (!value) return "Never";
@@ -74,6 +76,22 @@ export default function ManageRoomModal({ roomId, open, onClose }: Props) {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [isCreatingInvite, setCreatingInvite] = useState(false);
   const [revokingCode, setRevokingCode] = useState<string | null>(null);
+  const copyFeedbackTimeout = useRef<number | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setInviteForm({ role: "MEMBER", maxUses: "1", expiresInDays: "7" });
+    }
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeout.current !== null) {
+        window.clearTimeout(copyFeedbackTimeout.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -292,7 +310,7 @@ export default function ManageRoomModal({ roomId, open, onClose }: Props) {
     setInviteError(null);
     setCreatingInvite(true);
     try {
-      const payload: { role: Role; max_uses?: number; expires_in_hours?: number } = {
+      const payload: { role: InviteRole; max_uses?: number; expires_in_hours?: number } = {
         role: inviteForm.role,
       };
       const parsedMax = Number(inviteForm.maxUses);
@@ -325,6 +343,26 @@ export default function ManageRoomModal({ roomId, open, onClose }: Props) {
     }
   }
 
+  async function copyInviteCode(invite: RoomInvite) {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      setInviteError("Clipboard access is unavailable in this browser.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(invite.code);
+      setCopiedCode(invite.code);
+      if (copyFeedbackTimeout.current !== null) {
+        window.clearTimeout(copyFeedbackTimeout.current);
+      }
+      copyFeedbackTimeout.current = window.setTimeout(() => {
+        setCopiedCode(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy invite:", err);
+      setInviteError("Could not copy invite to clipboard.");
+    }
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Manage Room">
       {isLoading ? (
@@ -354,12 +392,16 @@ export default function ManageRoomModal({ roomId, open, onClose }: Props) {
                   <select
                     className="mt-1 rounded-lg border border-stone-300 px-2 py-1 text-sm"
                     value={inviteForm.role}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const nextRole = event.currentTarget.value as InviteRole;
+                      if (!INVITE_ROLES.includes(nextRole)) {
+                        return;
+                      }
                       setInviteForm((prev) => ({
                         ...prev,
-                        role: event.currentTarget.value as Role,
-                      }))
-                    }
+                        role: nextRole,
+                      }));
+                    }}
                   >
                     {INVITE_ROLES.map((role) => (
                       <option key={role} value={role}>
@@ -401,36 +443,48 @@ export default function ManageRoomModal({ roomId, open, onClose }: Props) {
 
             {invites.length ? (
               <ul className="flex flex-col gap-3">
-                {invites.map((invite) => (
-                  <li
-                    key={invite.code}
-                    className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white/80 p-4 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-stone-900">
-                          {ROLE_LABELS[invite.role]} invite
-                        </p>
-                        <p className="text-xs text-stone-500">
-                          Code: <code className="text-[11px]">{invite.code}</code>
-                        </p>
+                {invites.map((invite) => {
+                  const codeCopied = copiedCode === invite.code;
+                  return (
+                    <li
+                      key={invite.code}
+                      className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white/80 p-4 shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-stone-900">
+                            {ROLE_LABELS[invite.role]} invite
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            Code: <code className="text-[11px]">{invite.code}</code>
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <RoundedButton
+                            size="sm"
+                            className="btn-sort"
+                            onClick={() => copyInviteCode(invite)}
+                          >
+                            {codeCopied ? "Copied!" : "Copy invite"}
+                          </RoundedButton>
+                          <RoundedButton
+                            size="sm"
+                            className="btn-sort text-red-600 hover:text-red-800"
+                            disabled={revokingCode === invite.code}
+                            onClick={() => handleRevokeInvite(invite.code)}
+                          >
+                            {revokingCode === invite.code ? "Revoking…" : "Revoke"}
+                          </RoundedButton>
+                        </div>
                       </div>
-                      <RoundedButton
-                        size="sm"
-                        className="btn-sort text-red-600 hover:text-red-800"
-                        disabled={revokingCode === invite.code}
-                        onClick={() => handleRevokeInvite(invite.code)}
-                      >
-                        {revokingCode === invite.code ? "Revoking…" : "Revoke"}
-                      </RoundedButton>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-stone-600">
-                      <span>Uses: {invite.used} / {invite.max_uses}</span>
-                      <span>Expires: {formatDate(invite.expires_at)}</span>
-                      <span>Remaining: {invite.remaining}</span>
-                    </div>
-                  </li>
-                ))}
+                      <div className="flex flex-wrap gap-4 text-xs text-stone-600">
+                        <span>Uses: {invite.used} / {invite.max_uses}</span>
+                        <span>Expires: {formatDate(invite.expires_at)}</span>
+                        <span>Remaining: {invite.remaining}</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-sm text-stone-500">No active invites.</p>

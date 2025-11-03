@@ -9,7 +9,7 @@ export default function LandingTemplate({
   onLoginClick,
   isLoginDisabled = false,
 }: LandingTemplateProps) {
-  const loginLabel = isLoginDisabled ? "Checking session…" : "Login";
+  const loginLabel = "Login";
 
   return (
     <section className="flex flex-col items-center gap-6 text-center">

@@ -21,7 +21,7 @@ export default function CreateRoomForm({
       <div>
         <h1 className="text-2xl font-bold text-stone-900">Create a room</h1>
         <p className="mt-1 text-sm text-stone-600">
-          Pick a name for your new quest board. You can always rename it later.
+          Pick a name for your new masterquest kanban board. You can always rename it later. Must be 3 to 32 letters or numbers (optional underscores or dashes allowed in between).
         </p>
       </div>
       <form
@@ -36,8 +36,8 @@ export default function CreateRoomForm({
           value={value}
           onChange={onChange}
           required
-          minLength={2}
-          maxLength={80}
+          minLength={3}
+          maxLength={32}
         />
         <RoundedButton type="submit" disabled={isSubmitting} className="btn-primary" size="md">
           {isSubmitting ? "Creating…" : "Create room"}
