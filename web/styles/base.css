@@ -46,7 +46,7 @@ label {
 }
 
 /* === Text Inputs === */
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 input[type="text"],
 input[type="email"],
 input[type="password"],

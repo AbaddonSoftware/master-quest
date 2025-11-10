@@ -167,7 +167,7 @@ export default function ArchivePanel({
                   <ul className="mt-1 flex flex-col gap-2">
                     {archive.columns.map((column) => (
                       <li key={column.id} className="rounded-xl border border-stone-200 bg-white/80 p-2">
-                        <label className="flex items-center gap-1">
+                        <label className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
@@ -196,7 +196,7 @@ export default function ArchivePanel({
                   <ul className="mt-1 flex flex-col gap-2">
                     {archive.cards.map((card) => (
                       <li key={card.public_id} className="rounded-xl border border-stone-200 bg-white/80 p-2">
-                        <label className="flex items-center gap-1">
+                        <label className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
