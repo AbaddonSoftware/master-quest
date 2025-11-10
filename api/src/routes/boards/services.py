@@ -320,9 +320,9 @@ def hard_delete_column(
             "Cannot hard delete this column because it still has active cards. Confirm the deletion to proceed."
         )
 
-    archived_cards = [card for card in column.cards if card.deleted_at is not None]
+    cards_to_move = sorted(column.cards, key=lambda c: (c.position, c.id))
     fallback_column = None
-    if archived_cards:
+    if cards_to_move:
         fallback_column = (
             db.session.execute(
                 db.select(BoardColumn)
@@ -340,8 +340,18 @@ def hard_delete_column(
             raise ConflictError(
                 "Cannot hard delete this column because the board has no active columns to receive its archived cards. Create or restore a column first."
             )
-        for card in archived_cards:
-            card.column_id = fallback_column.id
+        next_position = (
+            db.session.execute(
+                db.select(func.coalesce(func.max(Card.position), -1)).where(
+                    Card.column_id == fallback_column.id
+                )
+            ).scalar_one()
+            + 1
+        )
+        for card in cards_to_move:
+            card.column = fallback_column
+            card.position = next_position
+            next_position += 1
 
     db.session.delete(column)
     db.session.commit()
