@@ -7,6 +7,7 @@ import BoardColumn from "../components/BoardColumn";
 import Modal from "../components/Modal";
 import TextField from "../components/TextField";
 import RoundedButton from "../components/RoundedButton";
+import ArchivePanel, { type ArchiveItemSelection } from "../components/ArchivePanel";
 import ManageRoomModal from "../components/ManageRoomModal";
 import { useRoomBoard } from "../hooks/useRoomBoard";
 import {
@@ -17,6 +18,8 @@ import {
   updateCard,
   archiveColumn,
   archiveCard,
+  hardDeleteArchivedCard,
+  hardDeleteArchivedColumn,
   restoreColumn,
   restoreCard,
   fetchBoardArchive,
@@ -41,6 +44,22 @@ const ROLE_WEIGHT: Record<Role, number> = {
 
 function memberDisplayName(member: RoomMember) {
   return member.display_name?.trim() || member.name;
+}
+
+function describeSelection(selection: ArchiveItemSelection) {
+  const parts: string[] = [];
+  if (selection.columns.length) {
+    parts.push(
+      `${selection.columns.length} column${selection.columns.length === 1 ? "" : "s"}`
+    );
+  }
+  if (selection.cards.length) {
+    parts.push(`${selection.cards.length} card${selection.cards.length === 1 ? "" : "s"}`);
+  }
+  if (!parts.length) {
+    return "0 items";
+  }
+  return parts.length === 2 ? `${parts[0]} and ${parts[1]}` : parts[0];
 }
 
 export default function RoomBoardPage() {
@@ -247,78 +266,16 @@ export default function RoomBoardPage() {
           </div>
         </section>
 
-        <div className="fixed bottom-6 right-6 flex flex-col items-end gap-2">
-          <RoundedButton
-            size="sm"
-            className="btn-sort"
-            onClick={() => setArchiveOpen((prev) => !prev)}
-          >
-            {isArchiveOpen
-              ? "Hide archived"
-              : `Archived (${archive.columns.length + archive.cards.length})`}
-          </RoundedButton>
-          {isArchiveOpen && (
-            <div className="w-80 max-h-96 overflow-y-auto rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-xl">
-              <h3 className="text-lg font-semibold text-stone-900">Archived items</h3>
-              {archiveNotice && <p className="text-xs text-green-700">{archiveNotice}</p>}
-              {archiveError && <p className="text-xs text-red-600">{archiveError}</p>}
-              {isArchiveLoading ? (
-                <p className="text-sm text-stone-600">Loading…</p>
-              ) : (
-                <div className="mt-2 flex flex-col gap-4 text-sm text-stone-700">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-stone-500">Columns</p>
-                    {archive.columns.length ? (
-                      <ul className="mt-1 flex flex-col gap-2">
-                        {archive.columns.map((column) => (
-                          <li
-                            key={column.id}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <span className="line-clamp-2 break-words">{column.title}</span>
-                            <RoundedButton
-                              size="sm"
-                              className="btn-login"
-                              onClick={() => handleRestoreColumn(column.id)}
-                            >
-                              Restore
-                            </RoundedButton>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-stone-500">No archived columns.</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-stone-500">Cards</p>
-                    {archive.cards.length ? (
-                      <ul className="mt-1 flex flex-col gap-2">
-                        {archive.cards.map((card) => (
-                          <li
-                            key={card.public_id}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <span className="line-clamp-2 break-words">{card.title}</span>
-                            <RoundedButton
-                              size="sm"
-                              className="btn-login"
-                              onClick={() => handleRestoreCard(card.public_id, card.column_id)}
-                            >
-                              Restore
-                            </RoundedButton>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-stone-500">No archived cards.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <ArchivePanel
+          archive={archive}
+          isOpen={isArchiveOpen}
+          isLoading={isArchiveLoading}
+          notice={archiveNotice}
+          error={archiveError}
+          onToggle={() => setArchiveOpen((prev) => !prev)}
+          onRestore={handleRestoreArchiveItems}
+          onHardDelete={handleHardDeleteArchiveItems}
+        />
       </>
     );
   }
@@ -520,18 +477,6 @@ export default function RoomBoardPage() {
     }
   }
 
-  async function handleRestoreColumn(columnId: number) {
-    if (!roomId || !board) return;
-    try {
-      await restoreColumn(roomId, board.public_id, columnId);
-      setArchiveNotice("Column restored.");
-      reload();
-      await loadArchive();
-    } catch (err: any) {
-      setArchiveError(err?.message || "Could not restore column.");
-    }
-  }
-
   async function handleArchiveCard(cardId: string, columnId: number) {
     if (!roomId || !board) return;
     try {
@@ -544,15 +489,52 @@ export default function RoomBoardPage() {
     }
   }
 
-  async function handleRestoreCard(cardId: string, columnId: number) {
+  async function handleRestoreArchiveItems(selection: ArchiveItemSelection) {
     if (!roomId || !board) return;
+    const hasWork = selection.columns.length || selection.cards.length;
+    if (!hasWork) return;
     try {
-      await restoreCard(roomId, board.public_id, columnId, cardId);
-      setArchiveNotice("Card restored.");
+      setArchiveError(null);
+      for (const column of selection.columns) {
+        await restoreColumn(roomId, board.public_id, column.id);
+      }
+      for (const card of selection.cards) {
+        await restoreCard(roomId, board.public_id, card.column_id, card.public_id);
+      }
+      const summary = describeSelection(selection);
+      setArchiveNotice(`Restored ${summary}.`);
       reload();
       await loadArchive();
     } catch (err: any) {
-      setArchiveError(err?.message || "Could not restore card.");
+      setArchiveError(err?.message || "Could not restore selected items.");
+      throw err;
+    }
+  }
+
+  async function handleHardDeleteArchiveItems(selection: ArchiveItemSelection) {
+    if (!roomId || !board) return;
+    const hasWork = selection.columns.length || selection.cards.length;
+    if (!hasWork) return;
+    try {
+      setArchiveError(null);
+      for (const column of selection.columns) {
+        await hardDeleteArchivedColumn(roomId, board.public_id, column.id, { force: true });
+      }
+      for (const card of selection.cards) {
+        await hardDeleteArchivedCard(
+          roomId,
+          board.public_id,
+          card.column_id,
+          card.public_id
+        );
+      }
+      const summary = describeSelection(selection);
+      setArchiveNotice(`Permanently deleted ${summary}.`);
+      reload();
+      await loadArchive();
+    } catch (err: any) {
+      setArchiveError(err?.message || "Could not delete selected items.");
+      throw err;
     }
   }
 

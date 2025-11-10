@@ -173,9 +173,24 @@ def restore_card(
         .with_for_update()
     ).scalar_one_or_none()
     if column is None:
-        raise NotFoundError(
-            "Cannot restore card because its column is archived or missing."
+        column = (
+            db.session.execute(
+                db.select(BoardColumn)
+                .where(
+                    BoardColumn.board_id == card.board_id,
+                    BoardColumn.deleted_at.is_(None),
+                )
+                .order_by(BoardColumn.position.asc(), BoardColumn.id.asc())
+                .with_for_update()
+            )
+            .scalars()
+            .first()
         )
+        if column is None:
+            raise ConflictError(
+                "Cannot restore card because this board has no active columns. Create a column first."
+            )
+        card.column_id = column.id
     _assert_wip_capacity(column)
 
     card.restore()
@@ -184,6 +199,28 @@ def restore_card(
     card.position = next_position
     db.session.commit()
     return card
+
+
+def hard_delete_card(
+    *, room_public_id: str, board_public_id: str, card_public_id: str
+) -> None:
+    card = db.session.execute(
+        db.select(Card)
+        .join(Board, Board.id == Card.board_id)
+        .join(Room, Room.id == Board.room_id)
+        .where(
+            Room.public_id == room_public_id,
+            Board.public_id == board_public_id,
+            Card.public_id == card_public_id,
+            Card.deleted_at.is_not(None),
+        )
+    ).scalar_one_or_none()
+    if card is None:
+        raise NotFoundError(f"Archived card '{card_public_id}' was not found.")
+
+    db.session.delete(card)
+    db.session.commit()
+
 
 def _next_card_position(column_id: int, *, exclude_card_id: int | None = None) -> int:
     stmt = db.select(func.coalesce(func.max(Card.position), -1)).where(

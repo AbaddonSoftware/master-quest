@@ -7,6 +7,7 @@ from .services import (
     create_board,
     create_board_column,
     get_board_with_columns,
+    hard_delete_column,
     list_archived_items,
     restore_column,
     soft_delete_board,
@@ -205,6 +206,28 @@ def restore_board_column_route(
             }
         }
     )
+
+
+@board_bp.delete("/<string:board_public_id>/archive/columns/<int:column_id>")
+@require_permission(Permission.EDIT_BOARD_COLUMN)
+def hard_delete_board_column_route(
+    room_public_id: str, board_public_id: str, column_id: int
+):
+    data = request.get_json(silent=True) or {}
+    force_param = request.args.get("force", data.get("force"))
+    force = False
+    if isinstance(force_param, str):
+        force = force_param.lower() in {"1", "true", "yes", "on"}
+    elif isinstance(force_param, bool):
+        force = force_param
+
+    hard_delete_column(
+        room_public_id=room_public_id,
+        board_public_id=board_public_id,
+        column_id=column_id,
+        force=force,
+    )
+    return jsonify({"message": "Column permanently deleted."}), 200
 
 
 @board_bp.get("/<string:board_public_id>/archive")

@@ -287,11 +287,64 @@ def restore_column(
         raise NotFoundError(f"Archived column '{column_id}' was not found.")
 
     column.restore()
-    for card in column.cards:
-        card.restore()
 
     db.session.commit()
     return column
+
+
+def hard_delete_column(
+    *,
+    room_public_id: str,
+    board_public_id: str,
+    column_id: int,
+    force: bool = False,
+) -> None:
+    column = db.session.execute(
+        db.select(BoardColumn)
+        .join(Board, Board.id == BoardColumn.board_id)
+        .join(Room, Room.id == Board.room_id)
+        .where(
+            Room.public_id == room_public_id,
+            Board.public_id == board_public_id,
+            BoardColumn.id == column_id,
+            BoardColumn.deleted_at.is_not(None),
+        )
+        .options(selectinload(BoardColumn.cards))
+    ).scalar_one_or_none()
+    if column is None:
+        raise NotFoundError(f"Archived column '{column_id}' was not found.")
+
+    active_cards = [card for card in column.cards if card.deleted_at is None]
+    if active_cards and not force:
+        raise ConflictError(
+            "Cannot hard delete this column because it still has active cards. Confirm the deletion to proceed."
+        )
+
+    archived_cards = [card for card in column.cards if card.deleted_at is not None]
+    fallback_column = None
+    if archived_cards:
+        fallback_column = (
+            db.session.execute(
+                db.select(BoardColumn)
+                .where(
+                    BoardColumn.board_id == column.board_id,
+                    BoardColumn.id != column.id,
+                    BoardColumn.deleted_at.is_(None),
+                )
+                .order_by(BoardColumn.position.asc(), BoardColumn.id.asc())
+            )
+            .scalars()
+            .first()
+        )
+        if fallback_column is None:
+            raise ConflictError(
+                "Cannot hard delete this column because the board has no active columns to receive its archived cards. Create or restore a column first."
+            )
+        for card in archived_cards:
+            card.column_id = fallback_column.id
+
+    db.session.delete(column)
+    db.session.commit()
 
 
 def list_archived_items(

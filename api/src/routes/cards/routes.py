@@ -3,7 +3,13 @@ from flask import jsonify, request
 from ...domain.decorators import require_permission
 from ...domain.security.permissions import Permission
 from . import card_bp
-from .services import create_card, restore_card, soft_delete_card, update_card
+from .services import (
+    create_card,
+    hard_delete_card,
+    restore_card,
+    soft_delete_card,
+    update_card,
+)
 
 
 @card_bp.post("")
@@ -96,3 +102,16 @@ def restore_card_route(
             }
         }
     )
+
+
+@card_bp.delete("/<string:card_public_id>/hard")
+@require_permission(Permission.EDIT_CARD)
+def hard_delete_card_route(
+    room_public_id: str, board_public_id: str, column_id: int, card_public_id: str
+):
+    hard_delete_card(
+        room_public_id=room_public_id,
+        board_public_id=board_public_id,
+        card_public_id=card_public_id,
+    )
+    return jsonify({"message": "Card permanently deleted."}), 200

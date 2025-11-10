@@ -124,6 +124,19 @@ export function restoreColumn(roomId: string, boardId: string, columnId: number)
   );
 }
 
+export function hardDeleteArchivedColumn(
+  roomId: string,
+  boardId: string,
+  columnId: number,
+  options?: { force?: boolean }
+) {
+  const forceQuery = options?.force ? "?force=true" : "";
+  return apiRequestJson<{ message: string }>(
+    `/api/rooms/${roomId}/boards/${boardId}/archive/columns/${columnId}${forceQuery}`,
+    { method: "DELETE" }
+  );
+}
+
 export function archiveCard(
   roomId: string,
   boardId: string,
@@ -145,6 +158,18 @@ export function restoreCard(
   return apiRequestJson<{ card: CardDto }>(
     `/api/rooms/${roomId}/boards/${boardId}/columns/${columnId}/cards/${cardId}/restore`,
     { method: "POST" }
+  );
+}
+
+export function hardDeleteArchivedCard(
+  roomId: string,
+  boardId: string,
+  columnId: number,
+  cardId: string
+) {
+  return apiRequestJson<{ message: string }>(
+    `/api/rooms/${roomId}/boards/${boardId}/columns/${columnId}/cards/${cardId}/hard`,
+    { method: "DELETE" }
   );
 }
 
