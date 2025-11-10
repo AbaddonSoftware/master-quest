@@ -22,6 +22,8 @@ import {
   hardDeleteArchivedColumn,
   restoreColumn,
   restoreCard,
+  reorderBoardColumns,
+  reorderColumnCards,
   fetchBoardArchive,
   type BoardArchiveResponse,
 } from "../services/boardService";
@@ -82,6 +84,10 @@ export default function RoomBoardPage() {
   const [columnError, setColumnError] = useState<string | null>(null);
   const [isColumnSaving, setColumnSaving] = useState(false);
   const [isCreatingColumn, setCreatingColumn] = useState(false);
+  const [isColumnReordering, setColumnReordering] = useState(false);
+  const [columnReorderError, setColumnReorderError] = useState<string | null>(null);
+  const [cardReorderColumnId, setCardReorderColumnId] = useState<number | null>(null);
+  const [cardReorderError, setCardReorderError] = useState<string | null>(null);
 
   const [editingCard, setEditingCard] = useState<{
     mode: "edit" | "create";
@@ -217,9 +223,19 @@ export default function RoomBoardPage() {
             {error && <span className="text-red-600">{error}</span>}
           </div>
         )}
+        {columnReorderError && (
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50/70 px-3 py-2 text-sm text-red-700 shadow-sm">
+            {columnReorderError}
+          </div>
+        )}
+        {cardReorderError && (
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50/70 px-3 py-2 text-sm text-red-700 shadow-sm">
+            {cardReorderError}
+          </div>
+        )}
         <section className="flex flex-1 flex-col gap-4 pb-4 -mx-2 px-2 sm:px-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
           {groupedColumns.length ? (
-            groupedColumns.map((column) => (
+            groupedColumns.map((column, index) => (
               <BoardColumn
                 key={column.id}
                 id={column.id}
@@ -243,6 +259,17 @@ export default function RoomBoardPage() {
                 }
                 onArchiveColumn={handleArchiveColumn}
                 onArchiveCard={handleArchiveCard}
+                onMoveLeft={
+                  index === 0 ? undefined : () => handleReorderColumn(column.id, index - 1)
+                }
+                onMoveRight={
+                  index === groupedColumns.length - 1
+                    ? undefined
+                    : () => handleReorderColumn(column.id, index + 1)
+                }
+                isReordering={isColumnReordering}
+                onReorderCard={handleReorderCard}
+                cardReorderDisabled={cardReorderColumnId !== null}
               />
             ))
           ) : (
@@ -399,6 +426,54 @@ export default function RoomBoardPage() {
       setColumnError(err?.message || "Could not update column.");
     } finally {
       setColumnSaving(false);
+    }
+  }
+
+  async function handleReorderColumn(columnId: number, targetIndex: number) {
+    if (!roomId || !board) return;
+    if (isColumnReordering) return;
+    const order = groupedColumns.map((column) => column.id);
+    const currentIndex = order.indexOf(columnId);
+    if (currentIndex === -1) return;
+    if (targetIndex < 0 || targetIndex >= order.length) return;
+    if (currentIndex === targetIndex) return;
+    const nextOrder = [...order];
+    const [moved] = nextOrder.splice(currentIndex, 1);
+    nextOrder.splice(targetIndex, 0, moved);
+    setColumnReordering(true);
+    setColumnReorderError(null);
+    try {
+      await reorderBoardColumns(roomId, board.public_id, nextOrder);
+      reload();
+    } catch (err: any) {
+      setColumnReorderError(err?.message || "Could not reorder columns.");
+    } finally {
+      setColumnReordering(false);
+    }
+  }
+
+  async function handleReorderCard(columnId: number, cardId: string, targetIndex: number) {
+    if (!roomId || !board) return;
+    if (cardReorderColumnId !== null) return;
+    const column = groupedColumns.find((col) => col.id === columnId);
+    if (!column) return;
+    const order = column.cards.map((card) => card.id);
+    const currentIndex = order.indexOf(cardId);
+    if (currentIndex === -1) return;
+    if (targetIndex < 0 || targetIndex >= order.length) return;
+    if (currentIndex === targetIndex) return;
+    const nextOrder = [...order];
+    const [moved] = nextOrder.splice(currentIndex, 1);
+    nextOrder.splice(targetIndex, 0, moved);
+    setCardReorderColumnId(columnId);
+    setCardReorderError(null);
+    try {
+      await reorderColumnCards(roomId, board.public_id, columnId, nextOrder);
+      reload();
+    } catch (err: any) {
+      setCardReorderError(err?.message || "Could not reorder cards.");
+    } finally {
+      setCardReorderColumnId(null);
     }
   }
 

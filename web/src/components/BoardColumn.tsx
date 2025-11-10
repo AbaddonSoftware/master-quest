@@ -16,6 +16,11 @@ type BoardColumnProps = {
   onColumnDoubleClick?: (columnId: number) => void;
   onArchiveColumn?: (columnId: number) => void;
   onArchiveCard?: (cardId: string, columnId: number) => void;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
+  isReordering?: boolean;
+  onReorderCard?: (columnId: number, cardId: string, targetIndex: number) => void;
+  cardReorderDisabled?: boolean;
 };
 
 export default function BoardColumn({
@@ -29,6 +34,11 @@ export default function BoardColumn({
   onColumnDoubleClick,
   onArchiveColumn,
   onArchiveCard,
+  onMoveLeft,
+  onMoveRight,
+  isReordering = false,
+  onReorderCard,
+  cardReorderDisabled = false,
 }: BoardColumnProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -43,6 +53,11 @@ export default function BoardColumn({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [isMenuOpen]);
+
+  const showMenu = Boolean(onEditColumn || onArchiveColumn);
+  const showReorderButtons = Boolean(onMoveLeft || onMoveRight);
+  const showHeaderActions = showMenu || showReorderButtons;
+  const reorderDisabled = isReordering;
 
   return (
     <div className="flex w-full flex-shrink-0 flex-col gap-3 rounded-2xl border border-amber-200 bg-white/70 p-4 shadow-md backdrop-blur sm:w-full md:w-52 lg:w-56 xl:w-60">
@@ -67,48 +82,75 @@ export default function BoardColumn({
             </span>
           )}
         </div>
-        {(onEditColumn || onArchiveColumn) && (
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={isMenuOpen}
-              onClick={(event) => {
-                event.stopPropagation();
-                setMenuOpen((prev) => !prev);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
-              title="Column actions"
-            >
-              ⚔️
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-36 rounded-lg border border-amber-200 bg-white/95 p-2 shadow-lg">
-                {onEditColumn && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setMenuOpen(false);
-                      onEditColumn(id, title, wipLimit ?? null);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-stone-700 hover:bg-amber-50 hover:text-amber-800"
-                  >
-                    🖋️ Edit Column
-                  </button>
-                )}
-                {onArchiveColumn && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setMenuOpen(false);
-                      onArchiveColumn(id);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
-                  >
-                    🛡️ Archive Column
-                  </button>
+        {showHeaderActions && (
+          <div className="flex items-start gap-2">
+            {showReorderButtons && (
+              <div className="flex items-center rounded-full border border-amber-200 bg-white/90 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => onMoveLeft?.()}
+                  disabled={!onMoveLeft || reorderDisabled}
+                  aria-label="Move column left"
+                  className="px-2 py-1 text-lg leading-none text-stone-600 transition hover:text-stone-900 disabled:cursor-not-allowed disabled:text-stone-300"
+                >
+                  ←
+                </button>
+                <div className="h-5 w-px bg-amber-200" />
+                <button
+                  type="button"
+                  onClick={() => onMoveRight?.()}
+                  disabled={!onMoveRight || reorderDisabled}
+                  aria-label="Move column right"
+                  className="px-2 py-1 text-lg leading-none text-stone-600 transition hover:text-stone-900 disabled:cursor-not-allowed disabled:text-stone-300"
+                >
+                  →
+                </button>
+              </div>
+            )}
+            {showMenu && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setMenuOpen((prev) => !prev);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
+                  title="Column actions"
+                >
+                  ⚔️
+                </button>
+                {isMenuOpen && (
+                  <div className="absolute right-0 z-20 mt-2 w-36 rounded-lg border border-amber-200 bg-white/95 p-2 shadow-lg">
+                    {onEditColumn && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMenuOpen(false);
+                          onEditColumn(id, title, wipLimit ?? null);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-stone-700 hover:bg-amber-50 hover:text-amber-800"
+                      >
+                        🖋️ Edit Column
+                      </button>
+                    )}
+                    {onArchiveColumn && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMenuOpen(false);
+                          onArchiveColumn(id);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        🛡️ Archive Column
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -125,7 +167,7 @@ export default function BoardColumn({
         }}
       >
         {cards.length ? (
-          cards.map((card) => (
+          cards.map((card, index) => (
             <BoardCard
               key={card.id}
               title={card.title}
@@ -153,6 +195,17 @@ export default function BoardColumn({
                   ? () => onArchiveCard(card.id, card.columnId)
                   : undefined
               }
+              onMoveUp={
+                index === 0
+                  ? undefined
+                  : () => onReorderCard?.(id, card.id, index - 1)
+              }
+              onMoveDown={
+                index === cards.length - 1
+                  ? undefined
+                  : () => onReorderCard?.(id, card.id, index + 1)
+              }
+              disableReorder={cardReorderDisabled}
             />
           ))
         ) : (

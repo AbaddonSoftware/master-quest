@@ -81,7 +81,7 @@ def register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(IntegrityError)
     def handle_integrity_error(e: IntegrityError):
-        # app.logger.info(e)
+        app.logger.info(e)
         db.session.rollback()
         body = {
             "type": "https://httpstatuses.com/409",

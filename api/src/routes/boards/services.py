@@ -4,7 +4,7 @@ from flask import g
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
-from ...domain.exceptions import ConflictError, NotFoundError
+from ...domain.exceptions import ConflictError, NotFoundError, ValidationError
 from ...domain.validators import validate_display_text, validate_in_enum, validate_int
 from ...extensions import db
 from ...persistence.models import Board, BoardColumn, Card, Room
@@ -238,6 +238,148 @@ def update_board_column(
 
     db.session.commit()
     return column
+
+
+def reorder_board_columns(
+    *,
+    room_public_id: str,
+    board_public_id: str,
+    column_ids: list[int] | None,
+) -> list[BoardColumn]:
+    if not isinstance(column_ids, list) or not column_ids:
+        raise ValidationError("column_ids must be a non-empty list.")
+
+    normalized_ids: list[int] = []
+    seen: set[int] = set()
+    for raw_id in column_ids:
+        normalized = validate_int(raw_id, "column_id", required=True, min_value=1)
+        if normalized in seen:
+            raise ValidationError("column_ids must be unique.")
+        seen.add(normalized)
+        normalized_ids.append(normalized)
+
+    board = db.session.execute(
+        db.select(Board)
+        .options(selectinload(Board.columns))
+        .join(Room, Room.id == Board.room_id)
+        .where(
+            Room.public_id == room_public_id,
+            Board.public_id == board_public_id,
+            Board.deleted_at.is_(None),
+        )
+    ).scalar_one_or_none()
+    if board is None:
+        raise NotFoundError(f"Board '{board_public_id}' not found.")
+
+    active_columns = {
+        column.id: column
+        for column in board.columns
+        if column.deleted_at is None
+    }
+    if not active_columns:
+        raise ValidationError("This board has no active columns to reorder.")
+
+    missing = [col_id for col_id in normalized_ids if col_id not in active_columns]
+    if missing:
+        raise ValidationError(
+            f"column_ids contains invalid ids for this board: {', '.join(map(str, missing))}."
+        )
+    if len(active_columns) != len(normalized_ids):
+        raise ValidationError("column_ids must include every active column exactly once.")
+
+    for position, column_id in enumerate(normalized_ids):
+        active_columns[column_id].position = position
+
+    db.session.commit()
+    return [active_columns[column_id] for column_id in normalized_ids]
+
+
+def reorder_column_cards(
+    *,
+    room_public_id: str,
+    board_public_id: str,
+    column_id: int,
+    card_ids: list[str] | None,
+) -> list[Card]:
+    if not isinstance(card_ids, list) or not card_ids:
+        raise ValidationError("card_ids must be a non-empty list.")
+
+    normalized_ids: list[str] = []
+    seen: set[str] = set()
+    for raw_id in card_ids:
+        if not isinstance(raw_id, str):
+            raise ValidationError("card_ids must be strings.")
+        normalized = raw_id.strip()
+        if not normalized:
+            raise ValidationError("card_ids cannot contain empty values.")
+        if normalized in seen:
+            raise ValidationError("card_ids must be unique.")
+        seen.add(normalized)
+        normalized_ids.append(normalized)
+
+    column = (
+        db.session.execute(
+            db.select(BoardColumn)
+            .options(selectinload(BoardColumn.cards))
+            .join(Board, Board.id == BoardColumn.board_id)
+            .join(Room, Room.id == Board.room_id)
+            .where(
+                Room.public_id == room_public_id,
+                Board.public_id == board_public_id,
+                BoardColumn.id == column_id,
+                BoardColumn.deleted_at.is_(None),
+            )
+            .with_for_update()
+        ).scalar_one_or_none()
+    )
+    if column is None:
+        raise NotFoundError(f"Column '{column_id}' not found on this board.")
+
+    active_cards = {
+        str(card.public_id): card for card in column.cards if card.deleted_at is None
+    }
+    if not active_cards:
+        raise ValidationError("This column has no active cards to reorder.")
+
+    missing = [card_id for card_id in normalized_ids if card_id not in active_cards]
+    if missing:
+        missing_display = ", ".join(missing)
+        raise ValidationError(
+            f"card_ids contains invalid ids for this column: {missing_display}."
+        )
+    if len(active_cards) != len(normalized_ids):
+        raise ValidationError("card_ids must include every active card exactly once.")
+
+    ordered_active_cards = [active_cards[card_id] for card_id in normalized_ids]
+    archived_cards = sorted(
+        (card for card in column.cards if card.deleted_at is not None),
+        key=lambda c: c.position,
+    )
+    ordered_cards = ordered_active_cards + archived_cards
+
+    current_max_position = (
+        max((card.position for card in ordered_cards), default=-1)
+        if ordered_cards
+        else -1
+    )
+    temp_offset = current_max_position + len(ordered_cards) + 1
+    for idx, card in enumerate(ordered_cards):
+        card.position = temp_offset + idx
+
+    db.session.flush()
+
+    db.session.execute(
+        db.update(Card)
+        .where(Card.column_id == column.id)
+        .values(position=Card.position - temp_offset)
+    )
+
+    db.session.flush()
+    for card in ordered_active_cards:
+        db.session.refresh(card, attribute_names=["position"])
+
+    db.session.commit()
+    return ordered_active_cards
 
 
 def soft_delete_column(

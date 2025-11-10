@@ -8,6 +8,8 @@ from .services import (
     create_board_column,
     get_board_with_columns,
     hard_delete_column,
+    reorder_board_columns,
+    reorder_column_cards,
     list_archived_items,
     restore_column,
     soft_delete_board,
@@ -169,6 +171,57 @@ def update_board_column_route(
                 "wip_limit": column.wip_limit,
                 "position": column.position,
             }
+        }
+    )
+
+
+@board_bp.patch("/<string:board_public_id>/columns/reorder")
+@require_permission(Permission.EDIT_BOARD_COLUMN)
+def reorder_board_columns_route(room_public_id: str, board_public_id: str):
+    data = request.get_json(silent=True) or {}
+    columns = reorder_board_columns(
+        room_public_id=room_public_id,
+        board_public_id=board_public_id,
+        column_ids=data.get("column_ids"),
+    )
+    return jsonify(
+        {
+            "columns": [
+                {
+                    "id": column.id,
+                    "title": column.title,
+                    "position": column.position,
+                }
+                for column in columns
+            ]
+        }
+    )
+
+
+@board_bp.patch(
+    "/<string:board_public_id>/columns/<int:column_id>/cards/reorder"
+)
+@require_permission(Permission.EDIT_BOARD_COLUMN)
+def reorder_column_cards_route(
+    room_public_id: str, board_public_id: str, column_id: int
+):
+    data = request.get_json(silent=True) or {}
+    cards = reorder_column_cards(
+        room_public_id=room_public_id,
+        board_public_id=board_public_id,
+        column_id=column_id,
+        card_ids=data.get("card_ids"),
+    )
+    return jsonify(
+        {
+            "cards": [
+                {
+                    "id": str(card.public_id),
+                    "column_id": card.column_id,
+                    "position": card.position,
+                }
+                for card in cards
+            ]
         }
     )
 

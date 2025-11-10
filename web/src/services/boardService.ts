@@ -94,6 +94,31 @@ export function updateBoardColumn(
   );
 }
 
+export function reorderBoardColumns(roomId: string, boardId: string, columnIds: number[]) {
+  return apiRequestJson<{ columns: { id: number; position: number }[] }>(
+    `/api/rooms/${roomId}/boards/${boardId}/columns/reorder`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ column_ids: columnIds }),
+    }
+  );
+}
+
+export function reorderColumnCards(
+  roomId: string,
+  boardId: string,
+  columnId: number,
+  cardIds: string[]
+) {
+  return apiRequestJson<{ cards: { id: string; column_id: number; position: number }[] }>(
+    `/api/rooms/${roomId}/boards/${boardId}/columns/${columnId}/cards/reorder`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ card_ids: cardIds }),
+    }
+  );
+}
+
 export function updateCard(
   roomId: string,
   boardId: string,
