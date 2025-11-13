@@ -2,12 +2,12 @@ import RoundedButton from "../components/RoundedButton";
 
 type LandingTemplateProps = {
   onLoginClick: () => void;
-  isLoginDisabled?: boolean;
+  showAuthSpinner?: boolean;
 };
 
 export default function LandingTemplate({
   onLoginClick,
-  isLoginDisabled = false,
+  showAuthSpinner = false,
 }: LandingTemplateProps) {
   const loginLabel = "Login";
 
@@ -24,14 +24,16 @@ export default function LandingTemplate({
         continue the quest.
       </p>
       <RoundedButton
-        label={loginLabel}
         onClick={onLoginClick}
         className="btn-login w-40"
         size="md"
-        disabled={isLoginDisabled}
-      />
-      {isLoginDisabled && (
-        <p className="text-sm text-stone-500">Preparing your quest log…</p>
+      >
+        {loginLabel}
+      </RoundedButton>
+      {showAuthSpinner && (
+        <p className="text-sm text-stone-500">
+          Checking for an existing session… you can still continue.
+        </p>
       )}
     </section>
   );

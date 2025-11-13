@@ -1,4 +1,5 @@
 steps:
+  # Build backend image
   - name: gcr.io/cloud-builders/docker
     args:
       [
@@ -9,6 +10,22 @@ steps:
         "docker/Dockerfile.prod.api",
         "."
       ]
+
+  # Run migrations using the freshly built image
+  - name: "$_IMAGE"
+    entrypoint: /bin/sh
+    args:
+      - "-c"
+      - |
+        if [ -z "${DATABASE_URL}" ]; then
+          echo "DATABASE_URL must be set for migrations" >&2
+          exit 1
+        fi
+        cd /app
+        alembic upgrade head
+    env:
+      - "DATABASE_URL=${DATABASE_URL}"
+      - "FLASK_ENV=production"
+
 images:
   - "$_IMAGE"
-

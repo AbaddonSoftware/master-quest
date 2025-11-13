@@ -18,7 +18,6 @@ export default function HomePage() {
   }
 
   const openLoginModal = () => {
-    if (isLoading) return;
     setLoginModalOpen(true);
   };
   const closeLoginModal = () => setLoginModalOpen(false);
@@ -32,7 +31,7 @@ export default function HomePage() {
     <>
       <LandingTemplate
         onLoginClick={openLoginModal}
-        isLoginDisabled={isLoading}
+        showAuthSpinner={isLoading}
       />
 
       <Modal open={isLoginModalOpen} onClose={closeLoginModal} title="Sign in">

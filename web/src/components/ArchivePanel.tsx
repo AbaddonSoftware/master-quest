@@ -87,7 +87,7 @@ export default function ArchivePanel({
       await onRestore({ columns: selectedColumns, cards: selectedCards });
       clearSelection();
     } catch {
-      // Parent handles error messaging; keep selection so user can retry.
+      // Parent handles error messaging;
     } finally {
       setActiveAction(null);
     }
@@ -118,8 +118,7 @@ export default function ArchivePanel({
       await onHardDelete({ columns: selectedColumns, cards: selectedCards });
       clearSelection();
     } catch {
-      // Parent handles error messaging; keep selection so user can retry.
-    } finally {
+      // Parent handles error messaging;
       setActiveAction(null);
     }
   }
